@@ -22,6 +22,7 @@ const refs = {
   clearButton: document.querySelector("#clearButton"),
   exportButton: document.querySelector("#exportButton"),
   viewSelect: document.querySelector("#viewSelect"),
+  groupBySelect: document.querySelector("#groupBySelect"),
   fonteFilter: document.querySelector("#fonteFilter"),
   origemFilter: document.querySelector("#origemFilter"),
   prioridadeFilter: document.querySelector("#prioridadeFilter"),
@@ -48,6 +49,7 @@ const state = {
   meta: null,
   audit: [],
   loadedAt: null,
+  collapsedGroups: new Set(),
 };
 
 init();
@@ -91,6 +93,7 @@ function bindEvents() {
 
   refs.rowsBody.addEventListener("change", handleTableChange);
   refs.rowsBody.addEventListener("blur", handleTableBlur, true);
+  refs.rowsBody.addEventListener("click", handleTableClick);
 }
 
 async function refreshAll() {
@@ -224,6 +227,7 @@ function applyFilters() {
     endDate: normalizeDate(form.get("end_date")),
     pendingOnly: Boolean(form.get("pending_only")),
     view: String(form.get("view") || "all"),
+    groupBy: String(form.get("group_by") || ""),
   };
   state.filters = filters;
   state.rows = state.allRows.filter((row) => rowMatches(row, filters));
@@ -315,7 +319,73 @@ function renderRows() {
     refs.rowsBody.innerHTML = '<tr><td colspan="16" class="empty">Nenhum boleto encontrado para os filtros atuais.</td></tr>';
     return;
   }
-  refs.rowsBody.innerHTML = state.rows.map(renderRow).join("");
+  refs.rowsBody.innerHTML = renderGroupedRows();
+}
+
+function renderGroupedRows() {
+  const groupByField = state.filters.groupBy || "";
+  if (!groupByField) return state.rows.map(renderRow).join("");
+
+  const groups = groupRowsForTable(state.rows, groupByField);
+  return groups.map((group) => {
+    const isCollapsed = state.collapsedGroups.has(group.key);
+    const subtotal = renderGroupHeader(group, isCollapsed);
+    const children = isCollapsed ? "" : group.rows.map(renderRow).join("");
+    return subtotal + children;
+  }).join("");
+}
+
+function groupRowsForTable(rows, field) {
+  const groups = new Map();
+  rows.forEach((row) => {
+    const rawKey = groupKey(row, field);
+    const key = `${field}:${rawKey}`;
+    if (!groups.has(key)) {
+      groups.set(key, { key, label: groupLabel(row, field, rawKey), rows: [] });
+    }
+    groups.get(key).rows.push(row);
+  });
+
+  return [...groups.values()].sort((a, b) => {
+    if (field === "vencimento") return a.label.localeCompare(b.label, "pt-BR");
+    return b.rows.length - a.rows.length || a.label.localeCompare(b.label, "pt-BR");
+  });
+}
+
+function renderGroupHeader(group, isCollapsed) {
+  const total = sum(group.rows, (row) => Number(row.valor || 0));
+  const pending = count(group.rows, (row) => normalizeText(row.tratado_pendente) === "pendente");
+  const review = count(group.rows, (row) => normalizeText(row.situacao_associacao).includes("revisao"));
+  const maxPriority = count(group.rows, (row) => normalizeText(row.prioridade).includes("maxima"));
+  const encodedKey = escapeAttr(group.key);
+  return `
+    <tr class="group-row ${isCollapsed ? "collapsed" : ""}">
+      <td colspan="3">
+        <button class="group-toggle" type="button" data-group-key="${encodedKey}" title="Abrir ou recolher grupo">${isCollapsed ? "+" : "-"}</button>
+        <strong>${escapeHtml(group.label)}</strong>
+      </td>
+      <td class="num">${group.rows.length}</td>
+      <td class="num group-total">${formatCurrency(total)}</td>
+      <td colspan="3">Pendentes: <strong>${pending}</strong> | Revisao: <strong>${review}</strong> | Prioridade maxima: <strong>${maxPriority}</strong></td>
+      <td colspan="8">Subtotal do grupo</td>
+    </tr>
+  `;
+}
+
+function groupKey(row, field) {
+  if (field === "vencimento") return row.vencimento || "Sem vencimento";
+  return row[field] || "Sem valor";
+}
+
+function groupLabel(row, field, rawKey) {
+  if (field === "vencimento") return rawKey === "Sem vencimento" ? rawKey : `Vencimento ${formatDate(rawKey)}`;
+  const labels = {
+    origem: "Origem",
+    fonte: "Modelo",
+    prioridade: "Prioridade",
+    situacao_associacao: "Associacao",
+  };
+  return `${labels[field] || "Grupo"}: ${rawKey || "Sem valor"}`;
 }
 
 function renderRow(row) {
@@ -436,6 +506,19 @@ async function handleTableBlur(event) {
   const input = event.target.closest("textarea[data-field], input[data-field='modelo']");
   if (!input || input.dataset.savedValue === input.value) return;
   await updateRowField(input);
+}
+
+function handleTableClick(event) {
+  const button = event.target.closest(".group-toggle");
+  if (!button) return;
+  const key = button.dataset.groupKey;
+  if (!key) return;
+  if (state.collapsedGroups.has(key)) {
+    state.collapsedGroups.delete(key);
+  } else {
+    state.collapsedGroups.add(key);
+  }
+  renderRows();
 }
 
 async function updateRowField(input) {

@@ -625,7 +625,9 @@ body.boletos-mode .workspace {
 }
 
 body.boletos-mode .table-wrap {
-  max-height: calc(100vh - 312px);
+  max-height: calc(100vh - 288px);
+  border: 1px solid #cbd8d4;
+  background: #fff;
 }
 
 body.boletos-mode .results-panel {
@@ -633,7 +635,77 @@ body.boletos-mode .results-panel {
 }
 
 body.boletos-mode table {
-  min-width: 1940px;
+  min-width: 2020px;
+  border-collapse: collapse;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body.boletos-mode th,
+body.boletos-mode td {
+  padding: 5px 6px;
+  border: 1px solid #d9e2df;
+  font-size: 11px;
+  line-height: 1.22;
+}
+
+body.boletos-mode th {
+  z-index: 4;
+  background: #e7eeea;
+  color: var(--sd-primary);
+  border-bottom: 2px solid #9fb3ad;
+  font-size: 9.8px;
+}
+
+body.boletos-mode tbody tr:nth-child(even) td {
+  background: #fbfcfb;
+}
+
+body.boletos-mode tr:hover td {
+  background: #edf5f1;
+}
+
+body.boletos-mode td select,
+body.boletos-mode td textarea,
+body.boletos-mode td input {
+  min-height: 23px;
+  padding: 2px 5px;
+  font-size: 10.8px;
+}
+
+body.boletos-mode .supplier-cell {
+  min-width: 220px;
+}
+
+body.boletos-mode .origin-cell {
+  min-width: 180px;
+}
+
+body.boletos-mode .table-select {
+  min-width: 118px;
+  height: 23px;
+  padding: 2px 22px 2px 6px;
+  border-radius: 3px;
+  font-size: 10.5px;
+}
+
+body.boletos-mode .table-input {
+  min-width: 108px;
+  border-radius: 3px;
+}
+
+body.boletos-mode .obs-editor {
+  min-width: 190px;
+  max-width: 235px;
+  min-height: 24px;
+  border-radius: 3px;
+}
+
+body.boletos-mode .priority {
+  min-height: 18px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
 }
 
 .last-change-cell {
@@ -654,6 +726,52 @@ body.boletos-mode table {
 .last-change-cell span {
   margin-top: 3px;
   font-size: 10.5px;
+}
+
+body.boletos-mode .last-change-cell {
+  min-width: 145px;
+}
+
+body.boletos-mode .last-change-cell strong {
+  font-size: 10.8px;
+}
+
+body.boletos-mode .last-change-cell span {
+  margin-top: 1px;
+  font-size: 9.8px;
+}
+
+body.boletos-mode .group-row td {
+  background: #dfe9e5 !important;
+  color: var(--sd-primary);
+  border-top: 2px solid var(--sd-secondary);
+  border-bottom: 1px solid #a9bbb5;
+  font-weight: 800;
+  vertical-align: middle;
+}
+
+body.boletos-mode .group-row.collapsed td {
+  background: #edf3f0 !important;
+}
+
+body.boletos-mode .group-toggle {
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  margin-right: 6px;
+  border: 1px solid #8fa59f;
+  border-radius: 3px;
+  background: #fff;
+  color: var(--sd-secondary);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+
+body.boletos-mode .group-total {
+  color: var(--sd-secondary);
+  font-weight: 900;
 }
 
 .model-card,

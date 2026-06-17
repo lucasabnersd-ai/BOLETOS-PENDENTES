@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Painel de Boletos Pendentes</title>
-    <link rel="stylesheet" href="./styles.css?v=20260617-4" />
+    <link rel="stylesheet" href="./styles.css?v=20260617-5" />
   </head>
   <body>
     <header class="app-header">
@@ -50,6 +50,17 @@
                 <option value="prioridade">Por prioridade</option>
                 <option value="situacao_associacao">Por associacao</option>
                 <option value="dda_itau">Por DDA Itau</option>
+              </select>
+            </label>
+            <label>
+              Agrupar
+              <select id="groupBySelect" name="group_by">
+                <option value="vencimento">Vencimento</option>
+                <option value="origem">Origem/empresa</option>
+                <option value="fonte">Modelo/fonte</option>
+                <option value="prioridade">Prioridade</option>
+                <option value="situacao_associacao">Associacao</option>
+                <option value="">Sem agrupamento</option>
               </select>
             </label>
             <label>
@@ -194,6 +205,6 @@
     </main>
 
     <div id="toast" class="toast" hidden></div>
-    <script type="module" src="./app.js?v=20260617-4"></script>
+    <script type="module" src="./app.js?v=20260617-5"></script>
   </body>
 </html>
