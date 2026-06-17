@@ -575,7 +575,7 @@ body.boletos-mode .app-shell {
 
 body.boletos-mode .side-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
 }
 
@@ -589,7 +589,7 @@ body.boletos-mode .filters-panel .section-title {
 
 body.boletos-mode #filtersForm {
   display: grid;
-  grid-template-columns: minmax(220px, 1.25fr) repeat(5, minmax(135px, 1fr)) minmax(170px, 0.7fr);
+  grid-template-columns: minmax(220px, 1.2fr) minmax(180px, 0.8fr) repeat(5, minmax(135px, 1fr)) minmax(170px, 0.7fr);
   gap: 8px 10px;
   align-items: end;
 }
@@ -633,7 +633,27 @@ body.boletos-mode .results-panel {
 }
 
 body.boletos-mode table {
-  min-width: 1780px;
+  min-width: 1940px;
+}
+
+.last-change-cell {
+  min-width: 170px;
+  color: #475569;
+}
+
+.last-change-cell strong,
+.last-change-cell span {
+  display: block;
+}
+
+.last-change-cell strong {
+  color: var(--sd-primary);
+  font-size: 12px;
+}
+
+.last-change-cell span {
+  margin-top: 3px;
+  font-size: 10.5px;
 }
 
 .model-card,

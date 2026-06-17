@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Painel de Boletos Pendentes</title>
-    <link rel="stylesheet" href="./styles.css?v=20260617-3" />
+    <link rel="stylesheet" href="./styles.css?v=20260617-4" />
   </head>
   <body>
     <header class="app-header">
@@ -36,6 +36,10 @@
             <label>
               Busca
               <input id="searchInput" name="search" placeholder="Fornecedor, CNPJ, NF, origem..." />
+            </label>
+            <label>
+              Seu nome
+              <input id="operatorName" name="operator_name" placeholder="Pessoa que esta alterando" autocomplete="name" />
             </label>
             <label>
               Visao
@@ -95,11 +99,6 @@
           </form>
         </section>
 
-        <section class="panel compact">
-          <h2>Atualizacao automatica</h2>
-          <p class="muted-copy">O CMD sincroniza a planilha compartilhada com o Supabase e publica o snapshot no GitHub.</p>
-          <div id="metaBox" class="meta-list"></div>
-        </section>
       </aside>
 
       <section class="workspace">
@@ -160,11 +159,12 @@
                     <th>Associacao</th>
                     <th>Checklist</th>
                     <th>Tratado</th>
+                    <th>Ultima alteracao</th>
                     <th>Observacao</th>
                   </tr>
                 </thead>
                 <tbody id="rowsBody">
-                  <tr><td colspan="15" class="empty">Carregando boletos...</td></tr>
+                  <tr><td colspan="16" class="empty">Carregando boletos...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -194,6 +194,6 @@
     </main>
 
     <div id="toast" class="toast" hidden></div>
-    <script type="module" src="./app.js?v=20260617-3"></script>
+    <script type="module" src="./app.js?v=20260617-4"></script>
   </body>
 </html>

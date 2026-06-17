@@ -16,6 +16,7 @@ const refs = {
   syncStatus: document.querySelector("#syncStatus"),
   rowStatus: document.querySelector("#rowStatus"),
   filtersForm: document.querySelector("#filtersForm"),
+  operatorName: document.querySelector("#operatorName"),
   refreshButton: document.querySelector("#refreshButton"),
   auditRefreshButton: document.querySelector("#auditRefreshButton"),
   clearButton: document.querySelector("#clearButton"),
@@ -60,6 +61,11 @@ async function init() {
 }
 
 function bindEvents() {
+  refs.operatorName.value = localStorage.getItem("boletos_operator_name") || "";
+  refs.operatorName.addEventListener("input", () => {
+    localStorage.setItem("boletos_operator_name", refs.operatorName.value.trim());
+  });
+
   refs.filtersForm.addEventListener("submit", (event) => {
     event.preventDefault();
     applyFilters();
@@ -237,6 +243,7 @@ function rowMatches(row, filters) {
       row.linha_digitavel,
       row.codigo_barras,
       row.observacao,
+      row.last_changed_by,
     ].join(" "));
     if (!haystack.includes(filters.search)) return false;
   }
@@ -305,7 +312,7 @@ function renderGroupBars(groups, total) {
 function renderRows() {
   refs.resultCount.textContent = `${state.rows.length} registro${state.rows.length === 1 ? "" : "s"}`;
   if (!state.rows.length) {
-    refs.rowsBody.innerHTML = '<tr><td colspan="15" class="empty">Nenhum boleto encontrado para os filtros atuais.</td></tr>';
+    refs.rowsBody.innerHTML = '<tr><td colspan="16" class="empty">Nenhum boleto encontrado para os filtros atuais.</td></tr>';
     return;
   }
   refs.rowsBody.innerHTML = state.rows.map(renderRow).join("");
@@ -328,6 +335,10 @@ function renderRow(row) {
       <td>${renderSelect(row, "situacao_associacao", ["SEM PAR ENCONTRADO", "CANDIDATO EM REVISAO", "ASSOCIADO", "DESCARTADO"])}</td>
       <td class="check-cell"><input type="checkbox" data-field="checklist" ${isChecked(row.checklist) ? "checked" : ""} /></td>
       <td>${renderSelect(row, "tratado_pendente", ["PENDENTE", "TRATADO", "EM ANALISE", "CANCELADO"])}</td>
+      <td class="last-change-cell">
+        <strong>${escapeHtml(row.last_changed_by || "Sistema")}</strong>
+        <span>${formatDateTime(row.last_changed_at || row.updated_at)}</span>
+      </td>
       <td><textarea class="obs-editor" data-field="observacao">${escapeHtml(row.observacao || "")}</textarea></td>
     </tr>
   `;
@@ -390,7 +401,9 @@ function renderMeta() {
     ["Linhas importadas", meta.row_count ?? state.allRows.length ?? 0],
     ["Valor total", meta.total_value != null ? formatCurrency(meta.total_value) : formatCurrency(sum(state.allRows, (row) => Number(row.valor || 0)))],
   ];
-  refs.metaBox.innerHTML = rows.map(([key, value]) => `<div class="meta-row"><span>${escapeHtml(key)}</span><strong>${escapeHtml(value)}</strong></div>`).join("");
+  if (refs.metaBox) {
+    refs.metaBox.innerHTML = rows.map(([key, value]) => `<div class="meta-row"><span>${escapeHtml(key)}</span><strong>${escapeHtml(value)}</strong></div>`).join("");
+  }
 }
 
 function renderAudit() {
@@ -433,9 +446,16 @@ async function updateRowField(input) {
   const row = state.allRows.find((item) => item.id === id);
   if (!row) return;
   const value = input.type === "checkbox" ? input.checked : input.value;
+  const previous = {
+    [field]: row[field],
+    last_changed_by: row.last_changed_by,
+    last_changed_at: row.last_changed_at,
+  };
+  const changedBy = currentOperatorName();
+  const changedAt = new Date().toISOString();
   input.disabled = true;
   try {
-    const payload = { [field]: value };
+    const payload = { [field]: value, last_changed_by: changedBy, last_changed_at: changedAt };
     const { data, error } = await supabase
       .from(ITEMS_TABLE)
       .update(payload)
@@ -445,7 +465,7 @@ async function updateRowField(input) {
     if (error) throw error;
     Object.assign(row, data);
     input.dataset.savedValue = input.value;
-    await recordAudit(id, "painel_update", { field, value, source: "painel_web" });
+    await recordAudit(id, "painel_update", { field, value, changed_by: changedBy, changed_at: changedAt, source: "painel_web" }, previous);
     toast("Alteracao salva.");
     applyFilters();
   } catch (error) {
@@ -455,14 +475,19 @@ async function updateRowField(input) {
   }
 }
 
-async function recordAudit(itemId, action, payload) {
+async function recordAudit(itemId, action, payload, oldValue = null) {
   await supabase.from(AUDIT_TABLE).insert({
     item_id: itemId,
     field_name: payload.field || action,
-    old_value: null,
+    old_value: oldValue,
     new_value: { action, payload },
   });
   loadAudit();
+}
+
+function currentOperatorName() {
+  const value = refs.operatorName.value.trim() || localStorage.getItem("boletos_operator_name") || "";
+  return value.trim() || "Nao informado";
 }
 
 function activateTab(tab) {
@@ -476,7 +501,7 @@ function activateTab(tab) {
 }
 
 function exportCsv() {
-  const headers = ["alerta", "prioridade", "vencimento", "dias_para_vencer", "valor", "fornecedor", "cnpj_cpf", "nf_doc_extraido", "fonte", "origem", "dda_itau", "situacao_associacao", "checklist", "tratado_pendente", "observacao"];
+  const headers = ["alerta", "prioridade", "vencimento", "dias_para_vencer", "valor", "fornecedor", "cnpj_cpf", "nf_doc_extraido", "fonte", "origem", "dda_itau", "situacao_associacao", "checklist", "tratado_pendente", "last_changed_by", "last_changed_at", "observacao"];
   const lines = [headers.join(";")].concat(state.rows.map((row) => headers.map((field) => csvValue(row[field])).join(";")));
   const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
