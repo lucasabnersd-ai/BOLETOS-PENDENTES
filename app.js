@@ -341,13 +341,13 @@ function groupRowsForTable(rows, field) {
     const rawKey = groupKey(row, field);
     const key = `${field}:${rawKey}`;
     if (!groups.has(key)) {
-      groups.set(key, { key, label: groupLabel(row, field, rawKey), rows: [] });
+      groups.set(key, { key, rawKey, label: groupLabel(row, field, rawKey), rows: [] });
     }
     groups.get(key).rows.push(row);
   });
 
   return [...groups.values()].sort((a, b) => {
-    if (field === "vencimento") return a.label.localeCompare(b.label, "pt-BR");
+    if (field === "vencimento") return String(a.rawKey).localeCompare(String(b.rawKey), "pt-BR");
     return b.rows.length - a.rows.length || a.label.localeCompare(b.label, "pt-BR");
   });
 }
