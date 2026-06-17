@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Painel de Boletos Pendentes</title>
+    <link rel="stylesheet" href="./styles.css?v=20260617-1" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand-lockup">
+        <div class="brand-mark" aria-hidden="true">
+          <img src="./assets/logo-sd-white.svg" alt="" />
+        </div>
+        <div>
+          <span class="eyebrow">Financeiro S&amp;D</span>
+          <h1>Painel de Boletos Pendentes</h1>
+          <p>Monitoramento online dos boletos pendentes a associar.</p>
+        </div>
+      </div>
+      <div class="status-strip">
+        <span id="apiStatus" class="pill muted">Supabase verificando</span>
+        <span id="syncStatus" class="pill muted">Atualizacao verificando</span>
+        <span id="rowStatus" class="pill">0 boletos</span>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <aside class="side-panel">
+        <section class="panel">
+          <div class="section-title">
+            <h2>Filtros</h2>
+            <button id="refreshButton" type="button" class="icon-button" title="Atualizar dados" aria-label="Atualizar dados">↻</button>
+          </div>
+          <form id="filtersForm" class="stack">
+            <label>
+              Busca
+              <input id="searchInput" name="search" placeholder="Fornecedor, CNPJ, NF, origem..." />
+            </label>
+            <label>
+              Visao
+              <select id="viewSelect" name="view">
+                <option value="all">Todas as visoes</option>
+                <option value="fonte">Por modelo/fonte</option>
+                <option value="origem">Por origem</option>
+                <option value="prioridade">Por prioridade</option>
+                <option value="situacao_associacao">Por associacao</option>
+                <option value="dda_itau">Por DDA Itau</option>
+              </select>
+            </label>
+            <label>
+              Modelo/Fonte
+              <select id="fonteFilter" name="fonte"></select>
+            </label>
+            <label>
+              Origem/Empresa
+              <select id="origemFilter" name="origem"></select>
+            </label>
+            <label>
+              Prioridade
+              <select id="prioridadeFilter" name="prioridade"></select>
+            </label>
+            <label>
+              Associacao
+              <select id="associacaoFilter" name="situacao_associacao"></select>
+            </label>
+            <div class="inline-grid">
+              <label>
+                Valor min.
+                <input id="minValue" name="min_value" inputmode="numeric" placeholder="1.000,00" data-mask="currency" />
+              </label>
+              <label>
+                Valor max.
+                <input id="maxValue" name="max_value" inputmode="numeric" placeholder="5.000,00" data-mask="currency" />
+              </label>
+            </div>
+            <div class="inline-grid">
+              <label>
+                Venc. inicial
+                <input id="startDate" name="start_date" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" data-mask="date" />
+              </label>
+              <label>
+                Venc. final
+                <input id="endDate" name="end_date" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" data-mask="date" />
+              </label>
+            </div>
+            <label class="check-row">
+              <input id="pendingOnly" name="pending_only" type="checkbox" />
+              Somente pendentes
+            </label>
+            <div class="button-row">
+              <button type="submit">Aplicar</button>
+              <button id="clearButton" type="button" class="secondary">Limpar</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel compact">
+          <h2>Atualizacao automatica</h2>
+          <p class="muted-copy">O CMD sincroniza a planilha compartilhada com o Supabase e publica o snapshot no GitHub.</p>
+          <div id="metaBox" class="meta-list"></div>
+        </section>
+      </aside>
+
+      <section class="workspace">
+        <nav class="tabs" aria-label="Abas do painel">
+          <button class="tab-button active" type="button" data-tab="overview">Visao geral</button>
+          <button class="tab-button" type="button" data-tab="boletos">Boletos</button>
+          <button class="tab-button" type="button" data-tab="modelos">Modelos</button>
+          <button class="tab-button" type="button" data-tab="auditoria">Auditoria</button>
+        </nav>
+
+        <section id="overviewTab" class="tab-panel active">
+          <div id="kpiGrid" class="kpi-grid"></div>
+          <div class="split-grid">
+            <section class="panel">
+              <div class="section-title">
+                <h2>Prioridades</h2>
+                <span id="filteredStatus" class="pill muted">0 filtrados</span>
+              </div>
+              <div id="priorityBars" class="bar-list"></div>
+            </section>
+            <section class="panel">
+              <div class="section-title">
+                <h2>Vencimentos</h2>
+                <span id="overdueStatus" class="pill muted">0 vencidos</span>
+              </div>
+              <div id="dueBars" class="bar-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="boletosTab" class="tab-panel">
+          <section class="results-panel">
+            <div class="results-header">
+              <div>
+                <h2>Boletos pendentes</h2>
+                <p class="muted-copy">Edicoes feitas aqui sao gravadas direto no Supabase.</p>
+              </div>
+              <div class="button-row">
+                <button id="exportButton" type="button" class="secondary">Exportar CSV</button>
+                <span id="resultCount" class="pill">0 registros</span>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Alerta</th>
+                    <th>Prioridade</th>
+                    <th>Vencimento</th>
+                    <th>Dias</th>
+                    <th>Valor</th>
+                    <th>Fornecedor</th>
+                    <th>CNPJ/CPF</th>
+                    <th>NF/DOC</th>
+                    <th>Modelo</th>
+                    <th>Origem</th>
+                    <th>DDA</th>
+                    <th>Associacao</th>
+                    <th>Checklist</th>
+                    <th>Tratado</th>
+                    <th>Observacao</th>
+                  </tr>
+                </thead>
+                <tbody id="rowsBody">
+                  <tr><td colspan="15" class="empty">Carregando boletos...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section id="modelosTab" class="tab-panel">
+          <section class="panel">
+            <div class="section-title">
+              <h2>Monitor por modelo</h2>
+              <span id="modelCount" class="pill muted">0 grupos</span>
+            </div>
+            <div id="modelGrid" class="model-grid"></div>
+          </section>
+        </section>
+
+        <section id="auditoriaTab" class="tab-panel">
+          <section class="panel">
+            <div class="section-title">
+              <h2>Auditoria</h2>
+              <button id="auditRefreshButton" type="button" class="secondary">Atualizar</button>
+            </div>
+            <div id="auditList" class="audit-list"></div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" hidden></div>
+    <script type="module" src="./app.js?v=20260617-1"></script>
+  </body>
+</html>
