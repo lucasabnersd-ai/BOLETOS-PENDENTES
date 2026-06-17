@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Painel de Boletos Pendentes</title>
-    <link rel="stylesheet" href="./styles.css?v=20260617-1" />
+    <link rel="stylesheet" href="./styles.css?v=20260617-3" />
   </head>
   <body>
     <header class="app-header">
@@ -27,7 +27,7 @@
 
     <main class="app-shell">
       <aside class="side-panel">
-        <section class="panel">
+        <section class="panel filters-panel">
           <div class="section-title">
             <h2>Filtros</h2>
             <button id="refreshButton" type="button" class="icon-button" title="Atualizar dados" aria-label="Atualizar dados">↻</button>
@@ -143,14 +143,14 @@
               </div>
             </div>
             <div class="table-wrap">
-              <table>
+              <table class="boletos-table">
                 <thead>
                   <tr>
                     <th>Alerta</th>
                     <th>Prioridade</th>
                     <th>Vencimento</th>
-                    <th>Dias</th>
-                    <th>Valor</th>
+                    <th class="num">Dias</th>
+                    <th class="num">Valor</th>
                     <th>Fornecedor</th>
                     <th>CNPJ/CPF</th>
                     <th>NF/DOC</th>
@@ -194,6 +194,6 @@
     </main>
 
     <div id="toast" class="toast" hidden></div>
-    <script type="module" src="./app.js?v=20260617-1"></script>
+    <script type="module" src="./app.js?v=20260617-3"></script>
   </body>
 </html>

@@ -316,19 +316,19 @@ function renderRow(row) {
     <tr data-id="${escapeHtml(row.id)}">
       <td>${escapeHtml(row.alerta || "-")}</td>
       <td>${priorityBadge(row.prioridade)}</td>
-      <td>${formatDate(row.vencimento)}</td>
-      <td>${escapeHtml(row.dias_para_vencer ?? "-")}</td>
-      <td><span class="money">${formatCurrency(row.valor)}</span></td>
-      <td>${escapeHtml(row.fornecedor || "-")}</td>
-      <td>${escapeHtml(row.cnpj_cpf || "-")}</td>
-      <td>${escapeHtml(row.nf_doc_extraido || "-")}</td>
-      <td><input data-field="modelo" value="${escapeAttr(row.modelo || row.fonte || "")}" /></td>
-      <td>${escapeHtml(row.origem || "-")}</td>
+      <td class="nowrap">${formatDate(row.vencimento)}</td>
+      <td class="num">${escapeHtml(row.dias_para_vencer ?? "-")}</td>
+      <td class="num"><span class="money">${formatCurrency(row.valor)}</span></td>
+      <td class="supplier-cell">${escapeHtml(row.fornecedor || "-")}</td>
+      <td class="nowrap">${escapeHtml(row.cnpj_cpf || "-")}</td>
+      <td class="nowrap">${escapeHtml(row.nf_doc_extraido || "-")}</td>
+      <td><input class="table-input model-input" data-field="modelo" value="${escapeAttr(row.modelo || row.fonte || "")}" /></td>
+      <td class="origin-cell">${escapeHtml(row.origem || "-")}</td>
       <td>${escapeHtml(row.dda_itau || "-")}</td>
       <td>${renderSelect(row, "situacao_associacao", ["SEM PAR ENCONTRADO", "CANDIDATO EM REVISAO", "ASSOCIADO", "DESCARTADO"])}</td>
-      <td><input type="checkbox" data-field="checklist" ${isChecked(row.checklist) ? "checked" : ""} /></td>
+      <td class="check-cell"><input type="checkbox" data-field="checklist" ${isChecked(row.checklist) ? "checked" : ""} /></td>
       <td>${renderSelect(row, "tratado_pendente", ["PENDENTE", "TRATADO", "EM ANALISE", "CANCELADO"])}</td>
-      <td><textarea data-field="observacao">${escapeHtml(row.observacao || "")}</textarea></td>
+      <td><textarea class="obs-editor" data-field="observacao">${escapeHtml(row.observacao || "")}</textarea></td>
     </tr>
   `;
 }
@@ -336,7 +336,7 @@ function renderRow(row) {
 function renderSelect(row, field, options) {
   const current = String(row[field] || "");
   const values = [...new Set([current, ...options].filter(Boolean))];
-  return `<select data-field="${field}">${values.map((value) => `<option value="${escapeAttr(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}</select>`;
+  return `<select class="table-select" data-field="${field}">${values.map((value) => `<option value="${escapeAttr(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}</select>`;
 }
 
 function priorityBadge(value) {
@@ -472,6 +472,7 @@ function activateTab(tab) {
   document.querySelectorAll(".tab-panel").forEach((panel) => {
     panel.classList.toggle("active", panel.id === `${tab}Tab`);
   });
+  document.body.classList.toggle("boletos-mode", tab === "boletos");
 }
 
 function exportCsv() {
