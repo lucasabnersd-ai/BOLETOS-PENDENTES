@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Painel de Boletos Pendentes</title>
-    <link rel="stylesheet" href="./styles.css?v=20260617-5" />
+    <link rel="stylesheet" href="./styles.css?v=20260617-6" />
   </head>
   <body>
     <header class="app-header">
@@ -156,8 +156,8 @@
               <table class="boletos-table">
                 <thead>
                   <tr>
-                    <th>Alerta</th>
-                    <th>Prioridade</th>
+                    <th class="status-column">Tratado</th>
+                    <th class="status-column">Prioridade</th>
                     <th>Vencimento</th>
                     <th class="num">Dias</th>
                     <th class="num">Valor</th>
@@ -169,13 +169,12 @@
                     <th>DDA</th>
                     <th>Associacao</th>
                     <th>Checklist</th>
-                    <th>Tratado</th>
                     <th>Ultima alteracao</th>
                     <th>Observacao</th>
                   </tr>
                 </thead>
                 <tbody id="rowsBody">
-                  <tr><td colspan="16" class="empty">Carregando boletos...</td></tr>
+                  <tr><td colspan="15" class="empty">Carregando boletos...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -205,6 +204,6 @@
     </main>
 
     <div id="toast" class="toast" hidden></div>
-    <script type="module" src="./app.js?v=20260617-5"></script>
+    <script type="module" src="./app.js?v=20260617-6"></script>
   </body>
 </html>

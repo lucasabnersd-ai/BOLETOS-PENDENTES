@@ -416,6 +416,18 @@ button:disabled {
   min-width: 0;
   overflow: auto;
   max-height: calc(100vh - 265px);
+  cursor: grab;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+.table-wrap.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.table-wrap.is-dragging * {
+  cursor: grabbing !important;
 }
 
 table {
@@ -498,6 +510,49 @@ td input {
   font-weight: 800;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.status-column {
+  width: 122px;
+  min-width: 122px;
+}
+
+.priority-cell .priority,
+.treatment-select {
+  width: 100%;
+  min-height: 22px;
+  justify-content: center;
+}
+
+.treatment-select {
+  min-width: 0;
+  border-width: 1px;
+  border-style: solid;
+  font-weight: 900;
+}
+
+.treatment-select.status-analysis {
+  border-color: #78aee5;
+  background: #e7f1ff;
+  color: #155ca6;
+}
+
+.treatment-select.status-pending {
+  border-color: #e6a146;
+  background: #fff0d8;
+  color: #985006;
+}
+
+.treatment-select.status-treated {
+  border-color: #72ba8a;
+  background: #e5f5ea;
+  color: #17633a;
+}
+
+.treatment-select.status-cancelled {
+  border-color: #df8078;
+  background: #ffebe8;
+  color: #a5231a;
 }
 
 .table-input {
@@ -687,6 +742,21 @@ body.boletos-mode .table-select {
   padding: 2px 22px 2px 6px;
   border-radius: 3px;
   font-size: 10.5px;
+}
+
+body.boletos-mode .status-column {
+  width: 118px;
+  min-width: 118px;
+}
+
+body.boletos-mode .priority-cell .priority,
+body.boletos-mode .treatment-select {
+  height: 22px;
+  min-height: 22px;
+  border-radius: 3px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  font-size: 10px;
 }
 
 body.boletos-mode .table-input {

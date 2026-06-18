@@ -27,6 +27,7 @@ const refs = {
   origemFilter: document.querySelector("#origemFilter"),
   prioridadeFilter: document.querySelector("#prioridadeFilter"),
   associacaoFilter: document.querySelector("#associacaoFilter"),
+  tableWrap: document.querySelector(".table-wrap"),
   rowsBody: document.querySelector("#rowsBody"),
   resultCount: document.querySelector("#resultCount"),
   filteredStatus: document.querySelector("#filteredStatus"),
@@ -94,6 +95,7 @@ function bindEvents() {
   refs.rowsBody.addEventListener("change", handleTableChange);
   refs.rowsBody.addEventListener("blur", handleTableBlur, true);
   refs.rowsBody.addEventListener("click", handleTableClick);
+  enableHorizontalDrag(refs.tableWrap);
 }
 
 async function refreshAll() {
@@ -316,7 +318,7 @@ function renderGroupBars(groups, total) {
 function renderRows() {
   refs.resultCount.textContent = `${state.rows.length} registro${state.rows.length === 1 ? "" : "s"}`;
   if (!state.rows.length) {
-    refs.rowsBody.innerHTML = '<tr><td colspan="16" class="empty">Nenhum boleto encontrado para os filtros atuais.</td></tr>';
+    refs.rowsBody.innerHTML = '<tr><td colspan="15" class="empty">Nenhum boleto encontrado para os filtros atuais.</td></tr>';
     return;
   }
   refs.rowsBody.innerHTML = renderGroupedRows();
@@ -367,7 +369,7 @@ function renderGroupHeader(group, isCollapsed) {
       <td class="num">${group.rows.length}</td>
       <td class="num group-total">${formatCurrency(total)}</td>
       <td colspan="3">Pendentes: <strong>${pending}</strong> | Revisao: <strong>${review}</strong> | Prioridade maxima: <strong>${maxPriority}</strong></td>
-      <td colspan="8">Subtotal do grupo</td>
+      <td colspan="7">Subtotal do grupo</td>
     </tr>
   `;
 }
@@ -391,8 +393,8 @@ function groupLabel(row, field, rawKey) {
 function renderRow(row) {
   return `
     <tr data-id="${escapeHtml(row.id)}">
-      <td>${escapeHtml(row.alerta || "-")}</td>
-      <td>${priorityBadge(row.prioridade)}</td>
+      <td class="status-column treatment-cell">${renderSelect(row, "tratado_pendente", ["PENDENTE", "TRATADO", "EM ANALISE", "CANCELADO"])}</td>
+      <td class="status-column priority-cell">${priorityBadge(row.prioridade)}</td>
       <td class="nowrap">${formatDate(row.vencimento)}</td>
       <td class="num">${escapeHtml(row.dias_para_vencer ?? "-")}</td>
       <td class="num"><span class="money">${formatCurrency(row.valor)}</span></td>
@@ -404,7 +406,6 @@ function renderRow(row) {
       <td>${escapeHtml(row.dda_itau || "-")}</td>
       <td>${renderSelect(row, "situacao_associacao", ["SEM PAR ENCONTRADO", "CANDIDATO EM REVISAO", "ASSOCIADO", "DESCARTADO"])}</td>
       <td class="check-cell"><input type="checkbox" data-field="checklist" ${isChecked(row.checklist) ? "checked" : ""} /></td>
-      <td>${renderSelect(row, "tratado_pendente", ["PENDENTE", "TRATADO", "EM ANALISE", "CANCELADO"])}</td>
       <td class="last-change-cell">
         <strong>${escapeHtml(row.last_changed_by || "Sistema")}</strong>
         <span>${formatDateTime(row.last_changed_at || row.updated_at)}</span>
@@ -417,7 +418,16 @@ function renderRow(row) {
 function renderSelect(row, field, options) {
   const current = String(row[field] || "");
   const values = [...new Set([current, ...options].filter(Boolean))];
-  return `<select class="table-select" data-field="${field}">${values.map((value) => `<option value="${escapeAttr(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}</select>`;
+  const statusClass = field === "tratado_pendente" ? ` treatment-select ${treatmentStatusClass(current)}` : "";
+  return `<select class="table-select${statusClass}" data-field="${field}">${values.map((value) => `<option value="${escapeAttr(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}</select>`;
+}
+
+function treatmentStatusClass(value) {
+  const key = normalizeText(value);
+  if (key === "em analise") return "status-analysis";
+  if (key === "tratado") return "status-treated";
+  if (key === "cancelado") return "status-cancelled";
+  return "status-pending";
 }
 
 function priorityBadge(value) {
@@ -521,6 +531,52 @@ function handleTableClick(event) {
   renderRows();
 }
 
+function enableHorizontalDrag(scroller) {
+  if (!scroller) return;
+  let pointerId = null;
+  let startX = 0;
+  let startY = 0;
+  let startScrollLeft = 0;
+  let dragging = false;
+
+  scroller.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || event.target.closest("button, input, select, textarea, a, label")) return;
+    pointerId = event.pointerId;
+    startX = event.clientX;
+    startY = event.clientY;
+    startScrollLeft = scroller.scrollLeft;
+    dragging = false;
+    scroller.setPointerCapture?.(pointerId);
+  });
+
+  scroller.addEventListener("pointermove", (event) => {
+    if (pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - startX;
+    const deltaY = event.clientY - startY;
+    if (!dragging && (Math.abs(deltaX) < 5 || Math.abs(deltaX) <= Math.abs(deltaY))) return;
+    dragging = true;
+    scroller.classList.add("is-dragging");
+    scroller.scrollLeft = startScrollLeft - deltaX;
+    event.preventDefault();
+  });
+
+  const stopDragging = (event) => {
+    if (pointerId !== event.pointerId) return;
+    if (scroller.hasPointerCapture?.(pointerId)) scroller.releasePointerCapture(pointerId);
+    pointerId = null;
+    dragging = false;
+    scroller.classList.remove("is-dragging");
+  };
+
+  scroller.addEventListener("pointerup", stopDragging);
+  scroller.addEventListener("pointercancel", stopDragging);
+  scroller.addEventListener("lostpointercapture", () => {
+    pointerId = null;
+    dragging = false;
+    scroller.classList.remove("is-dragging");
+  });
+}
+
 async function updateRowField(input) {
   const rowEl = input.closest("tr[data-id]");
   if (!rowEl) return;
@@ -584,7 +640,7 @@ function activateTab(tab) {
 }
 
 function exportCsv() {
-  const headers = ["alerta", "prioridade", "vencimento", "dias_para_vencer", "valor", "fornecedor", "cnpj_cpf", "nf_doc_extraido", "fonte", "origem", "dda_itau", "situacao_associacao", "checklist", "tratado_pendente", "last_changed_by", "last_changed_at", "observacao"];
+  const headers = ["tratado_pendente", "prioridade", "vencimento", "dias_para_vencer", "valor", "fornecedor", "cnpj_cpf", "nf_doc_extraido", "fonte", "origem", "dda_itau", "situacao_associacao", "checklist", "last_changed_by", "last_changed_at", "observacao"];
   const lines = [headers.join(";")].concat(state.rows.map((row) => headers.map((field) => csvValue(row[field])).join(";")));
   const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
