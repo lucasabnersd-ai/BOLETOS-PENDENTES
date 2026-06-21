@@ -43,6 +43,7 @@ const refs = {
 };
 
 const editableFields = new Set(["tratado_pendente"]);
+const copyableFields = new Set(["linha_digitavel", "codigo_barras"]);
 const state = {
   allRows: [],
   rows: [],
@@ -348,7 +349,7 @@ function renderGroupBars(groups, total) {
 function renderRows() {
   refs.resultCount.textContent = `${state.rows.length} registro${state.rows.length === 1 ? "" : "s"}`;
   if (!state.rows.length) {
-    refs.rowsBody.innerHTML = '<tr><td colspan="14" class="empty">Nenhum boleto encontrado para os filtros atuais.</td></tr>';
+    refs.rowsBody.innerHTML = '<tr><td colspan="15" class="empty">Nenhum boleto encontrado para os filtros atuais.</td></tr>';
     return;
   }
   refs.rowsBody.innerHTML = renderGroupedRows();
@@ -399,7 +400,7 @@ function renderGroupHeader(group, isCollapsed) {
       </td>
       <td class="num">${group.rows.length}</td>
       <td class="num group-total">${formatCurrency(total)}</td>
-      <td colspan="3">Pendentes: <strong>${pending}</strong> | Revisao: <strong>${review}</strong> | Prioridade maxima: <strong>${maxPriority}</strong></td>
+      <td colspan="4">Pendentes: <strong>${pending}</strong> | Revisao: <strong>${review}</strong> | Prioridade maxima: <strong>${maxPriority}</strong></td>
       <td colspan="6">Subtotal do grupo</td>
     </tr>
   `;
@@ -430,6 +431,7 @@ function renderRow(row) {
       <td class="nowrap">${formatDate(row.vencimento)}${renderWeekendIndicator(row.vencimento)}</td>
       <td class="num">${days == null ? "-" : escapeHtml(days)}</td>
       <td class="num"><span class="money">${formatCurrency(row.valor)}</span></td>
+      <td class="copy-codes-cell">${renderCopyCodeActions(row)}</td>
       <td class="supplier-cell">${escapeHtml(row.fornecedor || "-")}</td>
       <td class="nowrap">${escapeHtml(row.cnpj_cpf || "-")}</td>
       <td class="nowrap">${escapeHtml(row.nf_doc_extraido || "-")}</td>
@@ -451,6 +453,22 @@ function renderSelect(row, field, options) {
   const values = [...new Set([current, ...options].filter(Boolean))];
   const statusClass = field === "tratado_pendente" ? ` treatment-select ${treatmentStatusClass(current)}` : "";
   return `<select class="table-select${statusClass}" data-field="${field}">${values.map((value) => `<option value="${escapeAttr(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}</select>`;
+}
+
+function renderCopyCodeActions(row) {
+  return `
+    <div class="copy-code-actions">
+      ${renderCopyCodeButton(row, "linha_digitavel", "Linha")}
+      ${renderCopyCodeButton(row, "codigo_barras", "Barras")}
+    </div>
+  `;
+}
+
+function renderCopyCodeButton(row, field, label) {
+  const available = Boolean(normalizeCopyCode(row[field]));
+  const description = field === "linha_digitavel" ? "linha digitavel" : "codigo de barras";
+  const title = available ? `Copiar ${description}` : `${description} indisponivel`;
+  return `<button type="button" class="copy-code-button" data-copy-field="${field}" title="${title}" aria-label="${title}" ${available ? "" : "disabled"}><span class="copy-code-icon" aria-hidden="true"></span><span>${label}</span></button>`;
 }
 
 function treatmentStatusClass(value) {
@@ -542,7 +560,13 @@ async function handleTableBlur(event) {
   await updateRowField(input);
 }
 
-function handleTableClick(event) {
+async function handleTableClick(event) {
+  const copyButton = event.target.closest(".copy-code-button");
+  if (copyButton) {
+    await copyRowCode(copyButton);
+    return;
+  }
+
   const button = event.target.closest(".group-toggle");
   if (!button) return;
   const key = button.dataset.groupKey;
@@ -553,6 +577,53 @@ function handleTableClick(event) {
     state.collapsedGroups.add(key);
   }
   renderRows();
+}
+
+async function copyRowCode(button) {
+  const field = button.dataset.copyField;
+  const rowId = button.closest("tr[data-id]")?.dataset.id;
+  if (!rowId || !copyableFields.has(field)) return;
+  const row = state.allRows.find((item) => item.id === rowId);
+  const value = normalizeCopyCode(row?.[field]);
+  if (!value) {
+    toast("Codigo indisponivel.");
+    return;
+  }
+
+  try {
+    await writeClipboard(value);
+    button.classList.add("copied");
+    setTimeout(() => button.classList.remove("copied"), 1200);
+    toast(field === "linha_digitavel" ? "Linha digitavel copiada." : "Codigo de barras copiado.");
+  } catch (error) {
+    toast("Nao foi possivel copiar o codigo.");
+  }
+}
+
+function normalizeCopyCode(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+async function writeClipboard(value) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value);
+      return;
+    } catch (error) {
+      // Continue with the compatible fallback below.
+    }
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  textarea.remove();
+  if (!copied) throw new Error("Clipboard indisponivel");
 }
 
 function enableHorizontalDrag(scroller) {

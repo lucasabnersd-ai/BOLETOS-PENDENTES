@@ -770,7 +770,7 @@ body.boletos-mode .results-panel {
 }
 
 body.boletos-mode table {
-  min-width: 1840px;
+  min-width: 1960px;
   border-collapse: collapse;
   border-radius: 0;
   box-shadow: none;
@@ -827,6 +827,87 @@ body.boletos-mode .table-select {
 body.boletos-mode .status-column {
   width: 118px;
   min-width: 118px;
+}
+
+.copy-column,
+.copy-codes-cell {
+  width: 124px;
+  min-width: 124px;
+}
+
+.copy-code-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.copy-code-button {
+  display: inline-flex;
+  min-width: 56px;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-color: #a8bbb5;
+  border-radius: 3px;
+  background: #fff;
+  color: var(--sd-primary);
+  padding: 3px 5px;
+  font-size: 9px;
+  line-height: 1;
+}
+
+.copy-code-button:not(.secondary):hover {
+  border-color: var(--sd-secondary);
+  background: #edf4f1;
+  color: var(--sd-primary);
+}
+
+.copy-code-button.copied,
+.copy-code-button.copied:not(.secondary):hover {
+  border-color: var(--sd-secondary);
+  background: var(--sd-secondary);
+  color: #fff;
+}
+
+.copy-code-button:disabled,
+.copy-code-button:disabled:hover {
+  cursor: not-allowed;
+  opacity: 0.34;
+  background: #f3f5f4;
+  color: #60716c;
+}
+
+.copy-code-icon {
+  position: relative;
+  width: 10px;
+  height: 10px;
+}
+
+.copy-code-icon::before,
+.copy-code-icon::after {
+  content: "";
+  position: absolute;
+  width: 6px;
+  height: 7px;
+  border: 1px solid currentColor;
+  border-radius: 1px;
+  background: inherit;
+}
+
+.copy-code-icon::before {
+  top: 0;
+  left: 0;
+}
+
+.copy-code-icon::after {
+  right: 0;
+  bottom: 0;
+  background: #fff;
+}
+
+.copy-code-button.copied .copy-code-icon::after {
+  background: var(--sd-secondary);
 }
 
 body.boletos-mode .priority-cell .priority,
