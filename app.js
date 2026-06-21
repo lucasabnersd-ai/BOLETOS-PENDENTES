@@ -420,7 +420,7 @@ function priorityBadge(value) {
 function renderModels() {
   const dimension = state.filters.view === "all" ? "fonte" : state.filters.view;
   const labelMap = {
-    fonte: "Modelo/Fonte",
+    fonte: "Fonte",
     origem: "Origem",
     prioridade: "Prioridade",
     situacao_associacao: "Associacao",
@@ -433,20 +433,40 @@ function renderModels() {
     refs.modelGrid.innerHTML = '<div class="empty">Sem grupos para os filtros atuais.</div>';
     return;
   }
-  refs.modelGrid.innerHTML = entries.map(([name, rows]) => {
+  const rowsTotal = state.rows.length;
+  refs.modelGrid.innerHTML = `
+    <div class="model-table" role="table" aria-label="Distribuicao dos boletos">
+      <div class="model-table-header" role="row">
+        <span role="columnheader">${escapeHtml(labelMap[dimension] || "Grupo")}</span>
+        <span role="columnheader" class="num">Boletos</span>
+        <span role="columnheader" class="num">Valor</span>
+        <span role="columnheader" class="num">Pendentes</span>
+        <span role="columnheader" class="num">Em revisao</span>
+      </div>
+      ${entries.map(([name, rows]) => {
     const total = sum(rows, (row) => Number(row.valor || 0));
     const pending = count(rows, (row) => normalizeText(row.tratado_pendente) === "pendente");
     const review = count(rows, (row) => normalizeText(row.situacao_associacao).includes("revisao"));
+    const share = rowsTotal ? Math.round((rows.length / rowsTotal) * 100) : 0;
+    const pendingShare = rows.length ? Math.round((pending / rows.length) * 100) : 0;
     return `
-      <article class="model-card">
-        <div><span>${escapeHtml(labelMap[dimension] || "Grupo")}</span><strong>${escapeHtml(name)}</strong></div>
-        <div><span>Boletos</span><strong>${rows.length}</strong></div>
-        <div><span>Valor</span><strong>${formatCurrency(total)}</strong></div>
-        <div><span>Pendentes</span><strong>${pending}</strong></div>
-        <div><span>Revisao</span><strong>${review}</strong></div>
-      </article>
-    `;
-  }).join("");
+        <div class="model-table-row" role="row">
+          <div class="model-source" role="cell">
+            <div class="model-source-line">
+              <strong>${escapeHtml(name)}</strong>
+              <span>${share}% da base</span>
+            </div>
+            <div class="model-share-track" aria-hidden="true"><span style="width:${share}%"></span></div>
+          </div>
+          <strong class="model-number" role="cell">${formatInteger(rows.length)}</strong>
+          <strong class="model-value" role="cell">${formatCurrency(total)}</strong>
+          <span class="model-status pending" role="cell"><strong>${formatInteger(pending)}</strong><small>${pendingShare}%</small></span>
+          <span class="model-status review" role="cell"><strong>${formatInteger(review)}</strong></span>
+        </div>
+      `;
+      }).join("")}
+    </div>
+  `;
 }
 
 function renderMeta() {
