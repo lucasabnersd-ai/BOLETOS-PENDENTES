@@ -18,7 +18,6 @@ const refs = {
   filtersForm: document.querySelector("#filtersForm"),
   operatorName: document.querySelector("#operatorName"),
   refreshButton: document.querySelector("#refreshButton"),
-  auditRefreshButton: document.querySelector("#auditRefreshButton"),
   clearButton: document.querySelector("#clearButton"),
   exportButton: document.querySelector("#exportButton"),
   viewSelect: document.querySelector("#viewSelect"),
@@ -37,7 +36,6 @@ const refs = {
   dueBars: document.querySelector("#dueBars"),
   modelGrid: document.querySelector("#modelGrid"),
   modelCount: document.querySelector("#modelCount"),
-  auditList: document.querySelector("#auditList"),
   metaBox: document.querySelector("#metaBox"),
   toast: document.querySelector("#toast"),
 };
@@ -48,7 +46,6 @@ const state = {
   rows: [],
   filters: {},
   meta: null,
-  audit: [],
   loadedAt: null,
   collapsedGroups: new Set(),
 };
@@ -81,7 +78,6 @@ function bindEvents() {
 
   refs.filtersForm.addEventListener("change", () => applyFilters());
   refs.refreshButton.addEventListener("click", () => withBusy(refs.refreshButton, refreshAll));
-  refs.auditRefreshButton.addEventListener("click", () => withBusy(refs.auditRefreshButton, loadAudit));
   refs.clearButton.addEventListener("click", () => {
     refs.filtersForm.reset();
     applyFilters();
@@ -99,7 +95,7 @@ function bindEvents() {
 }
 
 async function refreshAll() {
-  await Promise.all([loadRows(), loadMeta(), loadAudit()]);
+  await Promise.all([loadRows(), loadMeta()]);
   refs.apiStatus.textContent = "Supabase online";
   refs.apiStatus.classList.remove("muted", "danger");
 }
@@ -142,22 +138,6 @@ async function loadMeta() {
   if (error) return;
   state.meta = data?.value || null;
   renderMeta();
-}
-
-async function loadAudit() {
-  const { data, error } = await supabase
-    .from(AUDIT_TABLE)
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(40);
-
-  if (error) {
-    refs.auditList.innerHTML = `<div class="empty">Auditoria indisponivel: ${escapeHtml(error.message)}</div>`;
-    return;
-  }
-
-  state.audit = data || [];
-  renderAudit();
 }
 
 function setApiOffline(error) {
@@ -486,26 +466,6 @@ function renderMeta() {
   }
 }
 
-function renderAudit() {
-  if (!state.audit.length) {
-    refs.auditList.innerHTML = '<div class="empty">Nenhuma auditoria registrada ainda.</div>';
-    return;
-  }
-  refs.auditList.innerHTML = state.audit.map((item) => {
-    const before = item.old_value || {};
-    const after = item.new_value || {};
-    const payload = after.payload || after;
-    const action = after.action || "alteracao";
-    return `
-      <article class="audit-card">
-        <strong>${escapeHtml(action)}</strong>
-        <span>${formatDateTime(item.created_at)} · ${escapeHtml(payload.field || payload.source || "sistema")}</span>
-        <span>${escapeHtml(JSON.stringify({ before, after }).slice(0, 260))}</span>
-      </article>
-    `;
-  }).join("");
-}
-
 async function handleTableChange(event) {
   const input = event.target.closest("[data-field]");
   if (!input || !editableFields.has(input.dataset.field)) return;
@@ -622,7 +582,6 @@ async function recordAudit(itemId, action, payload, oldValue = null) {
     old_value: oldValue,
     new_value: { action, payload },
   });
-  loadAudit();
 }
 
 function currentOperatorName() {

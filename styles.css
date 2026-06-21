@@ -360,7 +360,6 @@ button:disabled {
 
 .bar-list,
 .model-grid,
-.audit-list,
 .meta-list {
   display: grid;
   gap: 10px;
@@ -864,7 +863,6 @@ body.boletos-mode .group-total {
 }
 
 .model-card,
-.audit-card,
 .meta-row {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -884,15 +882,9 @@ body.boletos-mode .group-total {
 }
 
 .model-card span,
-.audit-card span,
 .meta-row span {
   color: var(--muted);
   font-size: 12px;
-}
-
-.audit-card {
-  display: grid;
-  gap: 4px;
 }
 
 .toast {
