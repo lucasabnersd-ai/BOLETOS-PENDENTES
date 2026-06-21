@@ -39,6 +39,13 @@ const refs = {
   modelGrid: document.querySelector("#modelGrid"),
   modelCount: document.querySelector("#modelCount"),
   metaBox: document.querySelector("#metaBox"),
+  treatmentDialog: document.querySelector("#treatmentDialog"),
+  treatmentForm: document.querySelector("#treatmentForm"),
+  treatmentText: document.querySelector("#treatmentText"),
+  treatmentContext: document.querySelector("#treatmentContext"),
+  treatmentCloseButton: document.querySelector("#treatmentCloseButton"),
+  treatmentCancelButton: document.querySelector("#treatmentCancelButton"),
+  treatmentSaveButton: document.querySelector("#treatmentSaveButton"),
   toast: document.querySelector("#toast"),
 };
 
@@ -49,6 +56,7 @@ const state = {
   rows: [],
   filters: {},
   meta: null,
+  treatments: new Map(),
   loadedAt: null,
   collapsedGroups: new Set(),
 };
@@ -97,6 +105,9 @@ function bindEvents() {
   refs.rowsBody.addEventListener("change", handleTableChange);
   refs.rowsBody.addEventListener("blur", handleTableBlur, true);
   refs.rowsBody.addEventListener("click", handleTableClick);
+  refs.treatmentForm.addEventListener("submit", saveTreatment);
+  refs.treatmentCloseButton.addEventListener("click", closeTreatmentDialog);
+  refs.treatmentCancelButton.addEventListener("click", closeTreatmentDialog);
   enableHorizontalDrag(refs.tableWrap);
 }
 
@@ -144,7 +155,8 @@ function formatInputDate(date) {
 }
 
 async function refreshAll() {
-  await Promise.all([loadRows(), loadMeta()]);
+  await Promise.all([loadRows(), loadMeta(), loadTreatments()]);
+  applyFilters();
   refs.apiStatus.textContent = "Supabase online";
   refs.apiStatus.classList.remove("muted", "danger");
 }
@@ -187,6 +199,29 @@ async function loadMeta() {
   if (error) return;
   state.meta = data?.value || null;
   renderMeta();
+}
+
+async function loadTreatments() {
+  const { data, error } = await supabase
+    .from(AUDIT_TABLE)
+    .select("item_id,new_value,created_at")
+    .eq("field_name", "tratativa")
+    .order("created_at", { ascending: false })
+    .limit(5000);
+
+  if (error) throw error;
+  const treatments = new Map();
+  (data || []).forEach((item) => {
+    const itemId = String(item.item_id || "");
+    if (!itemId || treatments.has(itemId)) return;
+    const payload = item.new_value?.payload || item.new_value || {};
+    treatments.set(itemId, {
+      value: String(payload.value || ""),
+      changedBy: String(payload.changed_by || "Nao informado"),
+      changedAt: payload.changed_at || item.created_at,
+    });
+  });
+  state.treatments = treatments;
 }
 
 function setApiOffline(error) {
@@ -277,6 +312,7 @@ function rowMatches(row, filters) {
       row.linha_digitavel,
       row.codigo_barras,
       row.observacao,
+      state.treatments.get(String(row.id))?.value,
       row.last_changed_by,
     ].join(" "));
     if (!haystack.includes(filters.search)) return false;
@@ -394,14 +430,14 @@ function renderGroupHeader(group, isCollapsed) {
   const weekend = state.filters.groupBy === "vencimento" ? renderWeekendIndicator(group.rawKey) : "";
   return `
     <tr class="group-row ${isCollapsed ? "collapsed" : ""}">
-      <td colspan="3">
+      <td colspan="5">
         <button class="group-toggle" type="button" data-group-key="${encodedKey}" title="Abrir ou recolher grupo">${isCollapsed ? "+" : "-"}</button>
         <strong>${escapeHtml(group.label)}</strong>${weekend}
       </td>
       <td class="num">${group.rows.length}</td>
       <td class="num group-total">${formatCurrency(total)}</td>
       <td colspan="4">Pendentes: <strong>${pending}</strong> | Revisao: <strong>${review}</strong> | Prioridade maxima: <strong>${maxPriority}</strong></td>
-      <td colspan="6">Subtotal do grupo</td>
+      <td colspan="4">Subtotal do grupo</td>
     </tr>
   `;
 }
@@ -427,6 +463,11 @@ function renderRow(row) {
   return `
     <tr data-id="${escapeHtml(row.id)}">
       <td class="status-column treatment-cell">${renderSelect(row, "tratado_pendente", ["PENDENTE", "TRATADO", "EM ANALISE", "CANCELADO"])}</td>
+      <td class="last-change-cell">
+        <strong>${escapeHtml(row.last_changed_by || "Sistema")}</strong>
+        <span>${formatDateTime(row.last_changed_at || row.updated_at)}</span>
+      </td>
+      <td class="treatment-entry-cell">${renderTreatmentBox(row)}</td>
       <td class="status-column priority-cell">${priorityBadge(row.prioridade)}</td>
       <td class="nowrap">${formatDate(row.vencimento)}${renderWeekendIndicator(row.vencimento)}</td>
       <td class="num">${days == null ? "-" : escapeHtml(days)}</td>
@@ -436,13 +477,8 @@ function renderRow(row) {
       <td class="nowrap">${escapeHtml(row.cnpj_cpf || "-")}</td>
       <td class="nowrap">${escapeHtml(row.nf_doc_extraido || "-")}</td>
       <td class="readonly-cell model-cell">${escapeHtml(row.modelo || row.fonte || "-")}</td>
-      <td class="origin-cell">${escapeHtml(row.origem || "-")}</td>
       <td>${escapeHtml(row.dda_itau || "-")}</td>
       <td class="check-cell readonly-cell">${isChecked(row.checklist) ? "SIM" : "-"}</td>
-      <td class="last-change-cell">
-        <strong>${escapeHtml(row.last_changed_by || "Sistema")}</strong>
-        <span>${formatDateTime(row.last_changed_at || row.updated_at)}</span>
-      </td>
       <td class="readonly-cell observation-cell" title="${escapeAttr(row.observacao || "")}">${escapeHtml(row.observacao || "-")}</td>
     </tr>
   `;
@@ -453,6 +489,18 @@ function renderSelect(row, field, options) {
   const values = [...new Set([current, ...options].filter(Boolean))];
   const statusClass = field === "tratado_pendente" ? ` treatment-select ${treatmentStatusClass(current)}` : "";
   return `<select class="table-select${statusClass}" data-field="${field}">${values.map((value) => `<option value="${escapeAttr(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}</select>`;
+}
+
+function renderTreatmentBox(row) {
+  const treatment = state.treatments.get(String(row.id));
+  const value = String(treatment?.value || "").trim();
+  const title = value ? `Editar tratativa: ${value}` : "Adicionar tratativa";
+  return `
+    <button type="button" class="treatment-box ${value ? "has-treatment" : ""}" data-action="edit-treatment" title="${escapeAttr(title)}" aria-label="${escapeAttr(title)}">
+      <span class="treatment-note-icon" aria-hidden="true"></span>
+      <span class="treatment-preview">${value ? escapeHtml(value) : "Adicionar tratativa"}</span>
+    </button>
+  `;
 }
 
 function renderCopyCodeActions(row) {
@@ -561,6 +609,12 @@ async function handleTableBlur(event) {
 }
 
 async function handleTableClick(event) {
+  const treatmentButton = event.target.closest('[data-action="edit-treatment"]');
+  if (treatmentButton) {
+    openTreatmentDialog(treatmentButton);
+    return;
+  }
+
   const copyButton = event.target.closest(".copy-code-button");
   if (copyButton) {
     await copyRowCode(copyButton);
@@ -577,6 +631,69 @@ async function handleTableClick(event) {
     state.collapsedGroups.add(key);
   }
   renderRows();
+}
+
+function openTreatmentDialog(button) {
+  const rowId = button.closest("tr[data-id]")?.dataset.id;
+  const row = state.allRows.find((item) => item.id === rowId);
+  if (!row) return;
+  const treatment = state.treatments.get(rowId);
+  refs.treatmentDialog.dataset.rowId = rowId;
+  refs.treatmentText.value = treatment?.value || "";
+  refs.treatmentContext.textContent = `${row.fornecedor || "Fornecedor nao informado"} | ${formatCurrency(row.valor)} | ${formatDate(row.vencimento)}`;
+  refs.treatmentDialog.showModal();
+  refs.treatmentText.focus();
+}
+
+function closeTreatmentDialog() {
+  refs.treatmentDialog.close();
+  refs.treatmentDialog.dataset.rowId = "";
+}
+
+async function saveTreatment(event) {
+  event.preventDefault();
+  const rowId = refs.treatmentDialog.dataset.rowId;
+  const row = state.allRows.find((item) => item.id === rowId);
+  if (!row) return;
+
+  const value = refs.treatmentText.value.trim();
+  const previous = state.treatments.get(rowId) || null;
+  if (value === String(previous?.value || "").trim()) {
+    closeTreatmentDialog();
+    return;
+  }
+
+  const changedBy = currentOperatorName();
+  const changedAt = new Date().toISOString();
+  refs.treatmentSaveButton.disabled = true;
+  try {
+    const payload = { field: "tratativa", value, changed_by: changedBy, changed_at: changedAt, source: "painel_web" };
+    const { error: auditError } = await supabase.from(AUDIT_TABLE).insert({
+      item_id: rowId,
+      field_name: "tratativa",
+      old_value: previous,
+      new_value: { action: "tratativa_update", payload },
+    });
+    if (auditError) throw auditError;
+
+    const { data, error } = await supabase
+      .from(ITEMS_TABLE)
+      .update({ last_changed_by: changedBy, last_changed_at: changedAt })
+      .eq("id", rowId)
+      .select("*")
+      .single();
+    if (error) throw error;
+
+    Object.assign(row, data);
+    state.treatments.set(rowId, { value, changedBy, changedAt });
+    closeTreatmentDialog();
+    applyFilters();
+    toast("Tratativa salva.");
+  } catch (error) {
+    toast(error.message || "Nao foi possivel salvar a tratativa.");
+  } finally {
+    refs.treatmentSaveButton.disabled = false;
+  }
 }
 
 async function copyRowCode(button) {
@@ -734,9 +851,13 @@ function activateTab(tab) {
 }
 
 function exportCsv() {
-  const headers = ["tratado_pendente", "prioridade", "vencimento", "dias_para_vencer", "valor", "fornecedor", "cnpj_cpf", "nf_doc_extraido", "fonte", "origem", "dda_itau", "checklist", "last_changed_by", "last_changed_at", "observacao"];
+  const headers = ["tratado_pendente", "last_changed_by", "last_changed_at", "tratativa", "prioridade", "vencimento", "dias_para_vencer", "valor", "fornecedor", "cnpj_cpf", "nf_doc_extraido", "fonte", "dda_itau", "checklist", "observacao"];
   const lines = [headers.join(";")].concat(state.rows.map((row) => headers.map((field) => {
-    const value = field === "dias_para_vencer" ? daysUntilDue(row.vencimento) : row[field];
+    const value = field === "dias_para_vencer"
+      ? daysUntilDue(row.vencimento)
+      : field === "tratativa"
+        ? state.treatments.get(String(row.id))?.value || ""
+        : row[field];
     return csvValue(value);
   }).join(";")));
   const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });

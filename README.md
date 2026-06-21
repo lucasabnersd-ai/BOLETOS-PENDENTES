@@ -9,7 +9,7 @@ Painel online para acompanhar a base `BOLETOS PENDENTES A ASSOCIAR.xlsx` com a i
 - Alimenta a tabela `boleto_pendentes_items` no Supabase.
 - Publica um snapshot em `data/initial.json` e metadados em `update-meta.json`.
 - Mostra abas de visao geral, boletos e modelos.
-- Permite editar apenas o status tratado/pendente; os demais campos ficam em modo de leitura.
+- Permite editar o status tratado/pendente e registrar tratativas com historico; os demais campos ficam em modo de leitura.
 - Atualiza automaticamente a tela por Realtime e tambem por polling a cada 60 segundos.
 
 ## Atualizacao diaria

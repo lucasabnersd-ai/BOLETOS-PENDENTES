@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Painel de Boletos Pendentes</title>
-    <link rel="stylesheet" href="./styles.css?v=20260620-8" />
+    <link rel="stylesheet" href="./styles.css?v=20260620-10" />
   </head>
   <body>
     <header class="app-header">
@@ -151,6 +151,8 @@
                 <thead>
                   <tr>
                     <th class="status-column">Tratado</th>
+                    <th>Ultima alteracao</th>
+                    <th class="treatment-column">Tratativa</th>
                     <th class="status-column">Prioridade</th>
                     <th>Vencimento</th>
                     <th class="num">Dias</th>
@@ -160,10 +162,8 @@
                     <th>CNPJ/CPF</th>
                     <th>NF/DOC</th>
                     <th>Fonte</th>
-                    <th>Origem</th>
                     <th>DDA</th>
                     <th>Checklist</th>
-                    <th>Ultima alteracao</th>
                     <th>Observacao</th>
                   </tr>
                 </thead>
@@ -188,7 +188,28 @@
       </section>
     </main>
 
+    <dialog id="treatmentDialog" class="treatment-dialog" aria-labelledby="treatmentDialogTitle">
+      <form id="treatmentForm" class="treatment-form">
+        <div class="treatment-dialog-header">
+          <div>
+            <span class="eyebrow">Registro operacional</span>
+            <h2 id="treatmentDialogTitle">Tratativa</h2>
+          </div>
+          <button id="treatmentCloseButton" type="button" class="icon-button secondary" aria-label="Fechar tratativa" title="Fechar">&times;</button>
+        </div>
+        <p id="treatmentContext" class="treatment-context"></p>
+        <label for="treatmentText">
+          Descricao da tratativa
+          <textarea id="treatmentText" maxlength="1500" rows="7" placeholder="Informe o que foi analisado, solicitado ou resolvido."></textarea>
+        </label>
+        <div class="treatment-dialog-actions">
+          <button id="treatmentCancelButton" type="button" class="secondary">Cancelar</button>
+          <button id="treatmentSaveButton" type="submit">Salvar tratativa</button>
+        </div>
+      </form>
+    </dialog>
+
     <div id="toast" class="toast" hidden></div>
-    <script type="module" src="./app.js?v=20260620-9"></script>
+    <script type="module" src="./app.js?v=20260620-10"></script>
   </body>
 </html>
