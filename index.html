@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Painel de Boletos Pendentes</title>
-    <link rel="stylesheet" href="./styles.css?v=20260621-11" />
+    <link rel="stylesheet" href="./styles.css?v=20260621-12" />
   </head>
   <body>
     <header class="app-header">
@@ -204,7 +204,7 @@
         <p id="treatmentContext" class="treatment-context"></p>
         <label for="treatmentText">
           Descricao da tratativa
-          <textarea id="treatmentText" maxlength="1500" rows="7" placeholder="Informe o que foi analisado, solicitado ou resolvido."></textarea>
+          <textarea id="treatmentText" maxlength="1500" rows="7" placeholder="Informe o que foi analisado, solicitado ou resolvido." required></textarea>
         </label>
         <div class="treatment-dialog-actions">
           <button id="treatmentCancelButton" type="button" class="secondary">Cancelar</button>
@@ -215,15 +215,14 @@
 
     <dialog id="treatmentViewDialog" class="treatment-view-dialog" aria-labelledby="treatmentViewTitle">
       <div class="treatment-view-header">
-        <h2 id="treatmentViewTitle">Tratativa registrada</h2>
+        <h2 id="treatmentViewTitle">Historico de tratativas</h2>
         <button id="treatmentViewCloseButton" type="button" class="icon-button secondary" aria-label="Fechar visualizacao" title="Fechar">&times;</button>
       </div>
       <p id="treatmentViewContext" class="treatment-context"></p>
-      <div id="treatmentViewText" class="treatment-view-text"></div>
-      <div id="treatmentViewMeta" class="treatment-view-meta"></div>
+      <div id="treatmentViewList" class="treatment-history-list"></div>
     </dialog>
 
     <div id="toast" class="toast" hidden></div>
-    <script type="module" src="./app.js?v=20260621-11"></script>
+    <script type="module" src="./app.js?v=20260621-12"></script>
   </body>
 </html>

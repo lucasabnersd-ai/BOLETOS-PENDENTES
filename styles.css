@@ -1061,9 +1061,24 @@ body.boletos-mode .last-change-cell span {
 
 .treatment-preview {
   min-width: 0;
+  flex: 1 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.treatment-count-badge {
+  display: inline-grid;
+  flex: 0 0 auto;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--sd-primary);
+  color: #fff;
+  padding: 0 5px;
+  font-size: 9px;
+  font-weight: 900;
 }
 
 .treatment-note-icon {
@@ -1398,7 +1413,8 @@ body.boletos-mode .group-total {
 }
 
 .treatment-view-dialog {
-  width: min(460px, calc(100vw - 32px));
+  width: min(540px, calc(100vw - 32px));
+  max-height: min(680px, calc(100vh - 40px));
   border: 1px solid #8eb8aa;
   border-radius: 8px;
   background: #fff;
@@ -1423,25 +1439,56 @@ body.boletos-mode .group-total {
   font-size: 17px;
 }
 
-.treatment-view-text {
-  min-height: 72px;
+.treatment-history-list {
+  display: grid;
+  gap: 10px;
+  max-height: min(500px, calc(100vh - 190px));
   margin-top: 12px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.treatment-history-card {
+  position: relative;
+  margin: 0;
   padding: 12px;
   border: 1px solid #b8c8c3;
   border-radius: 5px;
   background: #f7faf8;
   color: #243c35;
+}
+
+.treatment-history-card header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 7px;
+}
+
+.treatment-history-card header strong {
+  color: var(--sd-primary);
+  font-size: 12px;
+}
+
+.treatment-history-card header span,
+.treatment-history-card small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.treatment-history-card p {
+  margin: 0;
   font-size: 13px;
   line-height: 1.5;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 
-.treatment-view-meta {
-  margin-top: 10px;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
+.treatment-history-card small {
+  display: block;
+  margin-top: 8px;
   text-align: right;
 }
 

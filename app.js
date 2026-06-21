@@ -50,8 +50,7 @@ const refs = {
   treatmentSaveButton: document.querySelector("#treatmentSaveButton"),
   treatmentViewDialog: document.querySelector("#treatmentViewDialog"),
   treatmentViewContext: document.querySelector("#treatmentViewContext"),
-  treatmentViewText: document.querySelector("#treatmentViewText"),
-  treatmentViewMeta: document.querySelector("#treatmentViewMeta"),
+  treatmentViewList: document.querySelector("#treatmentViewList"),
   treatmentViewCloseButton: document.querySelector("#treatmentViewCloseButton"),
   toast: document.querySelector("#toast"),
 };
@@ -239,14 +238,18 @@ async function loadTreatments() {
   const treatments = new Map();
   (data || []).forEach((item) => {
     const itemId = String(item.item_id || "");
-    if (!itemId || treatments.has(itemId)) return;
+    if (!itemId) return;
     const newValue = parseAuditJson(item.new_value);
     const payload = newValue?.payload || newValue || {};
-    treatments.set(itemId, {
+    const value = String(payload.value || "").trim();
+    if (!value) return;
+    const history = treatments.get(itemId) || [];
+    history.push({
       value: String(payload.value || ""),
       changedBy: String(payload.changed_by || "Nao informado"),
       changedAt: payload.changed_at || item.created_at,
     });
+    treatments.set(itemId, history);
   });
   state.treatments = treatments;
 }
@@ -355,7 +358,7 @@ function rowMatches(row, filters) {
       row.linha_digitavel,
       row.codigo_barras,
       row.observacao,
-      state.treatments.get(String(row.id))?.value,
+      treatmentSearchText(row.id),
       row.last_changed_by,
     ].join(" "));
     if (!haystack.includes(filters.search)) return false;
@@ -537,18 +540,39 @@ function renderSelect(row, field, options) {
 }
 
 function renderTreatmentBox(row) {
-  const treatment = state.treatments.get(String(row.id));
-  const value = String(treatment?.value || "").trim();
-  const title = value ? "Editar tratativa" : "Adicionar tratativa";
+  const history = treatmentHistory(row.id);
+  const latest = history[0];
+  const value = String(latest?.value || "").trim();
+  const count = history.length;
   return `
     <div class="treatment-cell-actions">
-      <button type="button" class="treatment-box ${value ? "has-treatment" : ""}" data-action="edit-treatment" title="${title}" aria-label="${title}">
+      <button type="button" class="treatment-box ${value ? "has-treatment" : ""}" data-action="edit-treatment" title="Adicionar nova tratativa" aria-label="Adicionar nova tratativa">
         <span class="treatment-note-icon" aria-hidden="true"></span>
         <span class="treatment-preview">${value ? escapeHtml(value) : "Adicionar tratativa"}</span>
+        ${count ? `<span class="treatment-count-badge" aria-label="${count} tratativa${count === 1 ? "" : "s"}">${count}</span>` : ""}
       </button>
-      ${value ? `<button type="button" class="treatment-view-button" data-action="view-treatment" title="Visualizar tratativa" aria-label="Visualizar tratativa"><span class="treatment-eye-icon" aria-hidden="true"></span></button>` : ""}
+      ${count ? `<button type="button" class="treatment-view-button" data-action="view-treatment" title="Visualizar historico de tratativas" aria-label="Visualizar ${count} tratativa${count === 1 ? "" : "s"}"><span class="treatment-eye-icon" aria-hidden="true"></span></button>` : ""}
     </div>
   `;
+}
+
+function treatmentHistory(rowId) {
+  const history = state.treatments.get(String(rowId));
+  return Array.isArray(history) ? history : [];
+}
+
+function treatmentSearchText(rowId) {
+  return treatmentHistory(rowId)
+    .map((item) => `${item.value || ""} ${item.changedBy || ""}`)
+    .join(" ");
+}
+
+function treatmentsForExport(rowId) {
+  return treatmentHistory(rowId)
+    .slice()
+    .reverse()
+    .map((item) => `${formatDateTime(item.changedAt)} - ${item.changedBy || "Nao informado"}: ${item.value || ""}`)
+    .join(" | ");
 }
 
 function renderCopyCodeActions(row) {
@@ -690,11 +714,19 @@ async function handleTableClick(event) {
 function openTreatmentView(button) {
   const rowId = button.closest("tr[data-id]")?.dataset.id;
   const row = state.allRows.find((item) => item.id === rowId);
-  const treatment = state.treatments.get(rowId);
-  if (!row || !treatment?.value) return;
+  const history = treatmentHistory(rowId);
+  if (!row || !history.length) return;
   refs.treatmentViewContext.textContent = `${row.fornecedor || "Fornecedor nao informado"} | ${formatCurrency(row.valor)} | ${formatDate(row.vencimento)}`;
-  refs.treatmentViewText.textContent = treatment.value;
-  refs.treatmentViewMeta.textContent = `${treatment.changedBy || "Nao informado"} | ${formatDateTime(treatment.changedAt)}`;
+  refs.treatmentViewList.innerHTML = history.map((treatment, index) => `
+    <article class="treatment-history-card">
+      <header>
+        <strong>${escapeHtml(treatment.changedBy || "Nao informado")}</strong>
+        <span>${escapeHtml(formatDateTime(treatment.changedAt))}</span>
+      </header>
+      <p>${escapeHtml(treatment.value || "")}</p>
+      <small>Tratativa ${history.length - index}</small>
+    </article>
+  `).join("");
   refs.treatmentViewDialog.showModal();
 }
 
@@ -702,9 +734,8 @@ function openTreatmentDialog(button) {
   const rowId = button.closest("tr[data-id]")?.dataset.id;
   const row = state.allRows.find((item) => item.id === rowId);
   if (!row) return;
-  const treatment = state.treatments.get(rowId);
   refs.treatmentDialog.dataset.rowId = rowId;
-  refs.treatmentText.value = treatment?.value || "";
+  refs.treatmentText.value = "";
   refs.treatmentContext.textContent = `${row.fornecedor || "Fornecedor nao informado"} | ${formatCurrency(row.valor)} | ${formatDate(row.vencimento)}`;
   refs.treatmentDialog.showModal();
   refs.treatmentText.focus();
@@ -713,6 +744,7 @@ function openTreatmentDialog(button) {
 function closeTreatmentDialog() {
   refs.treatmentDialog.close();
   refs.treatmentDialog.dataset.rowId = "";
+  refs.treatmentText.value = "";
 }
 
 async function saveTreatment(event) {
@@ -722,12 +754,14 @@ async function saveTreatment(event) {
   if (!row) return;
 
   const value = refs.treatmentText.value.trim();
-  const previous = state.treatments.get(rowId) || null;
-  if (value === String(previous?.value || "").trim()) {
-    closeTreatmentDialog();
+  if (!value) {
+    toast("Informe a tratativa.");
+    refs.treatmentText.focus();
     return;
   }
 
+  const history = treatmentHistory(rowId);
+  const previous = history[0] || null;
   const changedBy = currentOperatorName();
   const changedAt = new Date().toISOString();
   refs.treatmentSaveButton.disabled = true;
@@ -737,11 +771,11 @@ async function saveTreatment(event) {
       item_id: rowId,
       field_name: "tratativa",
       old_value: previous,
-      new_value: { action: "tratativa_update", payload },
+      new_value: { action: "tratativa_insert", payload },
     });
     if (auditError) throw auditError;
 
-    state.treatments.set(rowId, { value, changedBy, changedAt });
+    state.treatments.set(rowId, [{ value, changedBy, changedAt }, ...history]);
 
     const { data, error } = await supabase
       .from(ITEMS_TABLE)
@@ -920,7 +954,7 @@ function exportCsv() {
     const value = field === "dias_para_vencer"
       ? daysUntilDue(row.vencimento)
       : field === "tratativa"
-        ? state.treatments.get(String(row.id))?.value || ""
+        ? treatmentsForExport(row.id)
         : field === "fonte"
           ? sourceName(row)
           : row[field];
