@@ -767,7 +767,7 @@ body.boletos-mode .results-panel {
 }
 
 body.boletos-mode table {
-  min-width: 2020px;
+  min-width: 1840px;
   border-collapse: collapse;
   border-radius: 0;
   box-shadow: none;
@@ -847,8 +847,7 @@ body.boletos-mode .readonly-cell {
   user-select: text;
 }
 
-body.boletos-mode .model-cell,
-body.boletos-mode .association-cell {
+body.boletos-mode .model-cell {
   font-weight: 700;
 }
 

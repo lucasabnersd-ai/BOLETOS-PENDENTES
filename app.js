@@ -345,7 +345,7 @@ function renderGroupBars(groups, total) {
 function renderRows() {
   refs.resultCount.textContent = `${state.rows.length} registro${state.rows.length === 1 ? "" : "s"}`;
   if (!state.rows.length) {
-    refs.rowsBody.innerHTML = '<tr><td colspan="15" class="empty">Nenhum boleto encontrado para os filtros atuais.</td></tr>';
+    refs.rowsBody.innerHTML = '<tr><td colspan="14" class="empty">Nenhum boleto encontrado para os filtros atuais.</td></tr>';
     return;
   }
   refs.rowsBody.innerHTML = renderGroupedRows();
@@ -397,7 +397,7 @@ function renderGroupHeader(group, isCollapsed) {
       <td class="num">${group.rows.length}</td>
       <td class="num group-total">${formatCurrency(total)}</td>
       <td colspan="3">Pendentes: <strong>${pending}</strong> | Revisao: <strong>${review}</strong> | Prioridade maxima: <strong>${maxPriority}</strong></td>
-      <td colspan="7">Subtotal do grupo</td>
+      <td colspan="6">Subtotal do grupo</td>
     </tr>
   `;
 }
@@ -432,7 +432,6 @@ function renderRow(row) {
       <td class="readonly-cell model-cell">${escapeHtml(row.modelo || row.fonte || "-")}</td>
       <td class="origin-cell">${escapeHtml(row.origem || "-")}</td>
       <td>${escapeHtml(row.dda_itau || "-")}</td>
-      <td class="readonly-cell association-cell">${escapeHtml(row.situacao_associacao || "-")}</td>
       <td class="check-cell readonly-cell">${isChecked(row.checklist) ? "SIM" : "-"}</td>
       <td class="last-change-cell">
         <strong>${escapeHtml(row.last_changed_by || "Sistema")}</strong>
@@ -660,7 +659,7 @@ function activateTab(tab) {
 }
 
 function exportCsv() {
-  const headers = ["tratado_pendente", "prioridade", "vencimento", "dias_para_vencer", "valor", "fornecedor", "cnpj_cpf", "nf_doc_extraido", "fonte", "origem", "dda_itau", "situacao_associacao", "checklist", "last_changed_by", "last_changed_at", "observacao"];
+  const headers = ["tratado_pendente", "prioridade", "vencimento", "dias_para_vencer", "valor", "fornecedor", "cnpj_cpf", "nf_doc_extraido", "fonte", "origem", "dda_itau", "checklist", "last_changed_by", "last_changed_at", "observacao"];
   const lines = [headers.join(";")].concat(state.rows.map((row) => headers.map((field) => csvValue(row[field])).join(";")));
   const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
