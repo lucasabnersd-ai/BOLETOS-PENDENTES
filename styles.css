@@ -764,6 +764,25 @@ body.boletos-mode .table-input {
   border-radius: 3px;
 }
 
+body.boletos-mode .readonly-cell {
+  color: #344b44;
+  cursor: default;
+  user-select: text;
+}
+
+body.boletos-mode .model-cell,
+body.boletos-mode .association-cell {
+  font-weight: 700;
+}
+
+body.boletos-mode .observation-cell {
+  min-width: 190px;
+  max-width: 235px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 body.boletos-mode .obs-editor {
   min-width: 190px;
   max-width: 235px;

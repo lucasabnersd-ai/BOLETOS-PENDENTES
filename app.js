@@ -42,7 +42,7 @@ const refs = {
   toast: document.querySelector("#toast"),
 };
 
-const editableFields = new Set(["situacao_associacao", "checklist", "tratado_pendente", "observacao", "modelo"]);
+const editableFields = new Set(["tratado_pendente"]);
 const state = {
   allRows: [],
   rows: [],
@@ -401,16 +401,16 @@ function renderRow(row) {
       <td class="supplier-cell">${escapeHtml(row.fornecedor || "-")}</td>
       <td class="nowrap">${escapeHtml(row.cnpj_cpf || "-")}</td>
       <td class="nowrap">${escapeHtml(row.nf_doc_extraido || "-")}</td>
-      <td><input class="table-input model-input" data-field="modelo" value="${escapeAttr(row.modelo || row.fonte || "")}" /></td>
+      <td class="readonly-cell model-cell">${escapeHtml(row.modelo || row.fonte || "-")}</td>
       <td class="origin-cell">${escapeHtml(row.origem || "-")}</td>
       <td>${escapeHtml(row.dda_itau || "-")}</td>
-      <td>${renderSelect(row, "situacao_associacao", ["SEM PAR ENCONTRADO", "CANDIDATO EM REVISAO", "ASSOCIADO", "DESCARTADO"])}</td>
-      <td class="check-cell"><input type="checkbox" data-field="checklist" ${isChecked(row.checklist) ? "checked" : ""} /></td>
+      <td class="readonly-cell association-cell">${escapeHtml(row.situacao_associacao || "-")}</td>
+      <td class="check-cell readonly-cell">${isChecked(row.checklist) ? "SIM" : "-"}</td>
       <td class="last-change-cell">
         <strong>${escapeHtml(row.last_changed_by || "Sistema")}</strong>
         <span>${formatDateTime(row.last_changed_at || row.updated_at)}</span>
       </td>
-      <td><textarea class="obs-editor" data-field="observacao">${escapeHtml(row.observacao || "")}</textarea></td>
+      <td class="readonly-cell observation-cell" title="${escapeAttr(row.observacao || "")}">${escapeHtml(row.observacao || "-")}</td>
     </tr>
   `;
 }
@@ -513,8 +513,9 @@ async function handleTableChange(event) {
 }
 
 async function handleTableBlur(event) {
-  const input = event.target.closest("textarea[data-field], input[data-field='modelo']");
+  const input = event.target.closest("[data-field]");
   if (!input || input.dataset.savedValue === input.value) return;
+  if (!editableFields.has(input.dataset.field)) return;
   await updateRowField(input);
 }
 
