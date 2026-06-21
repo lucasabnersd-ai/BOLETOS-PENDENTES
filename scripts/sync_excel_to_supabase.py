@@ -103,7 +103,8 @@ def read_workbook(path: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         continue
       seen.add(item["source_key"])
 
-      item["modelo"] = item.get("fonte") or infer_modelo(item)
+      item["fonte"] = normalize_source_name(item.get("fonte") or infer_modelo(item))
+      item["modelo"] = item["fonte"]
       item["visao"] = item.get("origem") or item.get("fonte") or "Geral"
       item["raw"] = {source: to_jsonable(value) for source, value in raw.items() if source}
       item["raw"]["excel_row"] = row_index
@@ -212,6 +213,11 @@ def infer_modelo(item: dict[str, Any]) -> str:
     if "lucas" in origem or "financeiro" in origem:
       return "CENTRAL_LUCAS"
     return "OUTROS"
+
+
+def normalize_source_name(value: Any) -> str:
+    text = str(value or "").strip()
+    return "CENTRAL DE NOTAS" if "central" in normalize_key_text(text) else text
 
 
 def digits(value: Any) -> str:

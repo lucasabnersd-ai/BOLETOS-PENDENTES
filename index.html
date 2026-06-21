@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Painel de Boletos Pendentes</title>
-    <link rel="stylesheet" href="./styles.css?v=20260620-10" />
+    <link rel="stylesheet" href="./styles.css?v=20260621-11" />
   </head>
   <body>
     <header class="app-header">
@@ -53,7 +53,7 @@
               </select>
             </label>
             <label>
-              Modelo/Fonte
+              Fonte
               <select id="fonteFilter" name="fonte"></select>
             </label>
             <label>
@@ -92,8 +92,13 @@
               <button type="button" class="due-filter-button" data-due-days="1" data-due-mode="exact" aria-pressed="false">Vence em 1 dia</button>
               <button type="button" class="due-filter-button" data-due-days="2" data-due-mode="exact" aria-pressed="false">Vence em 2 dias</button>
               <button type="button" class="due-filter-button" data-due-days="3" data-due-mode="exact" aria-pressed="false">Vence em 3 dias</button>
-              <button type="button" class="due-filter-button" data-due-days="7" data-due-mode="range" aria-pressed="false">Vence nos proximos 7 dias</button>
             </div>
+            <div id="sourceScopeFilters" class="scope-filter-group" role="group" aria-label="Escopo dos boletos">
+              <button type="button" class="scope-filter-button active" data-scope="all" aria-pressed="true">Todos os boletos</button>
+              <button type="button" class="scope-filter-button" data-scope="dda" aria-pressed="false">Somente DDA</button>
+              <button type="button" class="scope-filter-button" data-scope="central" aria-pressed="false">Central de Notas</button>
+            </div>
+            <input id="sourceScope" name="source_scope" type="hidden" value="all" />
             <label class="check-row">
               <input id="pendingOnly" name="pending_only" type="checkbox" />
               Somente pendentes
@@ -159,16 +164,15 @@
                     <th class="num">Valor</th>
                     <th class="copy-column">Copiar</th>
                     <th>Fornecedor</th>
-                    <th>CNPJ/CPF</th>
-                    <th>NF/DOC</th>
                     <th>Fonte</th>
+                    <th>NF/DOC</th>
                     <th>DDA</th>
                     <th>Checklist</th>
                     <th>Observacao</th>
                   </tr>
                 </thead>
                 <tbody id="rowsBody">
-                  <tr><td colspan="15" class="empty">Carregando boletos...</td></tr>
+                  <tr><td colspan="14" class="empty">Carregando boletos...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -209,7 +213,17 @@
       </form>
     </dialog>
 
+    <dialog id="treatmentViewDialog" class="treatment-view-dialog" aria-labelledby="treatmentViewTitle">
+      <div class="treatment-view-header">
+        <h2 id="treatmentViewTitle">Tratativa registrada</h2>
+        <button id="treatmentViewCloseButton" type="button" class="icon-button secondary" aria-label="Fechar visualizacao" title="Fechar">&times;</button>
+      </div>
+      <p id="treatmentViewContext" class="treatment-context"></p>
+      <div id="treatmentViewText" class="treatment-view-text"></div>
+      <div id="treatmentViewMeta" class="treatment-view-meta"></div>
+    </dialog>
+
     <div id="toast" class="toast" hidden></div>
-    <script type="module" src="./app.js?v=20260620-10"></script>
+    <script type="module" src="./app.js?v=20260621-11"></script>
   </body>
 </html>

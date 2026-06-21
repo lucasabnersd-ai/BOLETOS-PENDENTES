@@ -26,6 +26,8 @@ const refs = {
   prioridadeFilter: document.querySelector("#prioridadeFilter"),
   associacaoFilter: document.querySelector("#associacaoFilter"),
   dueQuickFilters: document.querySelector("#dueQuickFilters"),
+  sourceScopeFilters: document.querySelector("#sourceScopeFilters"),
+  sourceScope: document.querySelector("#sourceScope"),
   startDate: document.querySelector("#startDate"),
   endDate: document.querySelector("#endDate"),
   tableWrap: document.querySelector(".table-wrap"),
@@ -46,6 +48,11 @@ const refs = {
   treatmentCloseButton: document.querySelector("#treatmentCloseButton"),
   treatmentCancelButton: document.querySelector("#treatmentCancelButton"),
   treatmentSaveButton: document.querySelector("#treatmentSaveButton"),
+  treatmentViewDialog: document.querySelector("#treatmentViewDialog"),
+  treatmentViewContext: document.querySelector("#treatmentViewContext"),
+  treatmentViewText: document.querySelector("#treatmentViewText"),
+  treatmentViewMeta: document.querySelector("#treatmentViewMeta"),
+  treatmentViewCloseButton: document.querySelector("#treatmentViewCloseButton"),
   toast: document.querySelector("#toast"),
 };
 
@@ -90,10 +97,12 @@ function bindEvents() {
 
   refs.filtersForm.addEventListener("change", () => applyFilters());
   refs.dueQuickFilters.addEventListener("click", handleDueQuickFilter);
+  refs.sourceScopeFilters.addEventListener("click", handleSourceScopeFilter);
   refs.refreshButton.addEventListener("click", () => withBusy(refs.refreshButton, refreshAll));
   refs.clearButton.addEventListener("click", () => {
     refs.filtersForm.reset();
     clearDueQuickFilterSelection();
+    setSourceScope("all");
     applyFilters();
   });
   refs.exportButton.addEventListener("click", exportCsv);
@@ -108,6 +117,7 @@ function bindEvents() {
   refs.treatmentForm.addEventListener("submit", saveTreatment);
   refs.treatmentCloseButton.addEventListener("click", closeTreatmentDialog);
   refs.treatmentCancelButton.addEventListener("click", closeTreatmentDialog);
+  refs.treatmentViewCloseButton.addEventListener("click", () => refs.treatmentViewDialog.close());
   enableHorizontalDrag(refs.tableWrap);
 }
 
@@ -138,6 +148,22 @@ function clearDueQuickFilterSelection() {
   refs.dueQuickFilters.querySelectorAll(".due-filter-button").forEach((button) => {
     button.classList.remove("active");
     button.setAttribute("aria-pressed", "false");
+  });
+}
+
+function handleSourceScopeFilter(event) {
+  const button = event.target.closest(".scope-filter-button");
+  if (!button) return;
+  setSourceScope(button.dataset.scope || "all");
+  applyFilters();
+}
+
+function setSourceScope(scope) {
+  refs.sourceScope.value = scope;
+  refs.sourceScopeFilters.querySelectorAll(".scope-filter-button").forEach((button) => {
+    const active = button.dataset.scope === scope;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
   });
 }
 
@@ -214,7 +240,8 @@ async function loadTreatments() {
   (data || []).forEach((item) => {
     const itemId = String(item.item_id || "");
     if (!itemId || treatments.has(itemId)) return;
-    const payload = item.new_value?.payload || item.new_value || {};
+    const newValue = parseAuditJson(item.new_value);
+    const payload = newValue?.payload || newValue || {};
     treatments.set(itemId, {
       value: String(payload.value || ""),
       changedBy: String(payload.changed_by || "Nao informado"),
@@ -222,6 +249,16 @@ async function loadTreatments() {
     });
   });
   state.treatments = treatments;
+}
+
+function parseAuditJson(value) {
+  if (value && typeof value === "object") return value;
+  if (typeof value !== "string") return {};
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return {};
+  }
 }
 
 function setApiOffline(error) {
@@ -245,7 +282,7 @@ function startRealtime() {
 }
 
 function renderEmptySelects() {
-  fillSelect(refs.fonteFilter, [], "Todos os modelos");
+  fillSelect(refs.fonteFilter, [], "Todas as fontes");
   fillSelect(refs.origemFilter, [], "Todas as origens");
   fillSelect(refs.prioridadeFilter, [], "Todas as prioridades");
   fillSelect(refs.associacaoFilter, [], "Todas as associacoes");
@@ -258,7 +295,7 @@ function populateFilterOptions() {
     prioridade: refs.prioridadeFilter.value,
     associacao: refs.associacaoFilter.value,
   };
-  fillSelect(refs.fonteFilter, uniqueValues(state.allRows, (row) => row.fonte || row.modelo), "Todos os modelos");
+  fillSelect(refs.fonteFilter, uniqueValues(state.allRows, sourceName), "Todas as fontes");
   fillSelect(refs.origemFilter, uniqueValues(state.allRows, (row) => row.origem), "Todas as origens");
   fillSelect(refs.prioridadeFilter, uniqueValues(state.allRows, (row) => row.prioridade), "Todas as prioridades");
   fillSelect(refs.associacaoFilter, uniqueValues(state.allRows, (row) => row.situacao_associacao), "Todas as associacoes");
@@ -279,6 +316,11 @@ function uniqueValues(rows, getter) {
     .sort((a, b) => a.localeCompare(b, "pt-BR"));
 }
 
+function sourceName(row) {
+  const value = String(row?.fonte || row?.modelo || "").trim();
+  return normalizeText(value).includes("central") ? "CENTRAL DE NOTAS" : value;
+}
+
 function applyFilters() {
   const form = new FormData(refs.filtersForm);
   const filters = {
@@ -292,6 +334,7 @@ function applyFilters() {
     startDate: normalizeDate(form.get("start_date")),
     endDate: normalizeDate(form.get("end_date")),
     pendingOnly: Boolean(form.get("pending_only")),
+    sourceScope: String(form.get("source_scope") || "all"),
     groupBy: String(form.get("group_by") || ""),
   };
   state.filters = filters;
@@ -306,7 +349,7 @@ function rowMatches(row, filters) {
       row.cnpj_cpf,
       row.nf_doc_extraido,
       row.origem,
-      row.fonte,
+      sourceName(row),
       row.assunto,
       row.remetente,
       row.linha_digitavel,
@@ -317,11 +360,13 @@ function rowMatches(row, filters) {
     ].join(" "));
     if (!haystack.includes(filters.search)) return false;
   }
-  if (filters.fonte && filters.fonte !== (row.fonte || row.modelo || "")) return false;
+  if (filters.fonte && filters.fonte !== sourceName(row)) return false;
   if (filters.origem && filters.origem !== (row.origem || "")) return false;
   if (filters.prioridade && filters.prioridade !== (row.prioridade || "")) return false;
   if (filters.situacaoAssociacao && filters.situacaoAssociacao !== (row.situacao_associacao || "")) return false;
   if (filters.pendingOnly && normalizeText(row.tratado_pendente) !== "pendente") return false;
+  if (filters.sourceScope === "dda" && normalizeText(row.dda_itau) !== "sim") return false;
+  if (filters.sourceScope === "central" && sourceName(row) !== "CENTRAL DE NOTAS") return false;
   const value = Number(row.valor || 0);
   if (Number.isFinite(filters.minValue) && value < filters.minValue) return false;
   if (Number.isFinite(filters.maxValue) && value > filters.maxValue) return false;
@@ -385,7 +430,7 @@ function renderGroupBars(groups, total) {
 function renderRows() {
   refs.resultCount.textContent = `${state.rows.length} registro${state.rows.length === 1 ? "" : "s"}`;
   if (!state.rows.length) {
-    refs.rowsBody.innerHTML = '<tr><td colspan="15" class="empty">Nenhum boleto encontrado para os filtros atuais.</td></tr>';
+    refs.rowsBody.innerHTML = '<tr><td colspan="14" class="empty">Nenhum boleto encontrado para os filtros atuais.</td></tr>';
     return;
   }
   refs.rowsBody.innerHTML = renderGroupedRows();
@@ -437,13 +482,14 @@ function renderGroupHeader(group, isCollapsed) {
       <td class="num">${group.rows.length}</td>
       <td class="num group-total">${formatCurrency(total)}</td>
       <td colspan="4">Pendentes: <strong>${pending}</strong> | Revisao: <strong>${review}</strong> | Prioridade maxima: <strong>${maxPriority}</strong></td>
-      <td colspan="4">Subtotal do grupo</td>
+      <td colspan="3">Subtotal do grupo</td>
     </tr>
   `;
 }
 
 function groupKey(row, field) {
   if (field === "vencimento") return row.vencimento || "Sem vencimento";
+  if (field === "fonte") return sourceName(row) || "Sem fonte";
   return row[field] || "Sem valor";
 }
 
@@ -451,7 +497,7 @@ function groupLabel(row, field, rawKey) {
   if (field === "vencimento") return rawKey === "Sem vencimento" ? rawKey : `Vencimento ${formatDate(rawKey)}`;
   const labels = {
     origem: "Origem",
-    fonte: "Modelo",
+    fonte: "Fonte",
     prioridade: "Prioridade",
     situacao_associacao: "Associacao",
   };
@@ -474,9 +520,8 @@ function renderRow(row) {
       <td class="num"><span class="money">${formatCurrency(row.valor)}</span></td>
       <td class="copy-codes-cell">${renderCopyCodeActions(row)}</td>
       <td class="supplier-cell">${escapeHtml(row.fornecedor || "-")}</td>
-      <td class="nowrap">${escapeHtml(row.cnpj_cpf || "-")}</td>
+      <td class="readonly-cell model-cell">${escapeHtml(sourceName(row) || "-")}</td>
       <td class="nowrap">${escapeHtml(row.nf_doc_extraido || "-")}</td>
-      <td class="readonly-cell model-cell">${escapeHtml(row.modelo || row.fonte || "-")}</td>
       <td>${escapeHtml(row.dda_itau || "-")}</td>
       <td class="check-cell readonly-cell">${isChecked(row.checklist) ? "SIM" : "-"}</td>
       <td class="readonly-cell observation-cell" title="${escapeAttr(row.observacao || "")}">${escapeHtml(row.observacao || "-")}</td>
@@ -494,12 +539,15 @@ function renderSelect(row, field, options) {
 function renderTreatmentBox(row) {
   const treatment = state.treatments.get(String(row.id));
   const value = String(treatment?.value || "").trim();
-  const title = value ? `Editar tratativa: ${value}` : "Adicionar tratativa";
+  const title = value ? "Editar tratativa" : "Adicionar tratativa";
   return `
-    <button type="button" class="treatment-box ${value ? "has-treatment" : ""}" data-action="edit-treatment" title="${escapeAttr(title)}" aria-label="${escapeAttr(title)}">
-      <span class="treatment-note-icon" aria-hidden="true"></span>
-      <span class="treatment-preview">${value ? escapeHtml(value) : "Adicionar tratativa"}</span>
-    </button>
+    <div class="treatment-cell-actions">
+      <button type="button" class="treatment-box ${value ? "has-treatment" : ""}" data-action="edit-treatment" title="${title}" aria-label="${title}">
+        <span class="treatment-note-icon" aria-hidden="true"></span>
+        <span class="treatment-preview">${value ? escapeHtml(value) : "Adicionar tratativa"}</span>
+      </button>
+      ${value ? `<button type="button" class="treatment-view-button" data-action="view-treatment" title="Visualizar tratativa" aria-label="Visualizar tratativa"><span class="treatment-eye-icon" aria-hidden="true"></span></button>` : ""}
+    </div>
   `;
 }
 
@@ -535,7 +583,7 @@ function priorityBadge(value) {
 }
 
 function renderModels() {
-  const groups = groupBy(state.rows, (row) => row.fonte || row.modelo || "Sem fonte");
+  const groups = groupBy(state.rows, (row) => sourceName(row) || "Sem fonte");
   const entries = [...groups.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "pt-BR"));
   refs.modelCount.textContent = `${entries.length} grupo${entries.length === 1 ? "" : "s"}`;
   if (!entries.length) {
@@ -609,6 +657,12 @@ async function handleTableBlur(event) {
 }
 
 async function handleTableClick(event) {
+  const viewTreatmentButton = event.target.closest('[data-action="view-treatment"]');
+  if (viewTreatmentButton) {
+    openTreatmentView(viewTreatmentButton);
+    return;
+  }
+
   const treatmentButton = event.target.closest('[data-action="edit-treatment"]');
   if (treatmentButton) {
     openTreatmentDialog(treatmentButton);
@@ -631,6 +685,17 @@ async function handleTableClick(event) {
     state.collapsedGroups.add(key);
   }
   renderRows();
+}
+
+function openTreatmentView(button) {
+  const rowId = button.closest("tr[data-id]")?.dataset.id;
+  const row = state.allRows.find((item) => item.id === rowId);
+  const treatment = state.treatments.get(rowId);
+  if (!row || !treatment?.value) return;
+  refs.treatmentViewContext.textContent = `${row.fornecedor || "Fornecedor nao informado"} | ${formatCurrency(row.valor)} | ${formatDate(row.vencimento)}`;
+  refs.treatmentViewText.textContent = treatment.value;
+  refs.treatmentViewMeta.textContent = `${treatment.changedBy || "Nao informado"} | ${formatDateTime(treatment.changedAt)}`;
+  refs.treatmentViewDialog.showModal();
 }
 
 function openTreatmentDialog(button) {
@@ -676,19 +741,18 @@ async function saveTreatment(event) {
     });
     if (auditError) throw auditError;
 
+    state.treatments.set(rowId, { value, changedBy, changedAt });
+
     const { data, error } = await supabase
       .from(ITEMS_TABLE)
       .update({ last_changed_by: changedBy, last_changed_at: changedAt })
       .eq("id", rowId)
       .select("*")
       .single();
-    if (error) throw error;
-
-    Object.assign(row, data);
-    state.treatments.set(rowId, { value, changedBy, changedAt });
+    if (!error && data) Object.assign(row, data);
     closeTreatmentDialog();
     applyFilters();
-    toast("Tratativa salva.");
+    toast(error ? "Tratativa salva; metadados nao atualizados." : "Tratativa salva.");
   } catch (error) {
     toast(error.message || "Nao foi possivel salvar a tratativa.");
   } finally {
@@ -851,13 +915,15 @@ function activateTab(tab) {
 }
 
 function exportCsv() {
-  const headers = ["tratado_pendente", "last_changed_by", "last_changed_at", "tratativa", "prioridade", "vencimento", "dias_para_vencer", "valor", "fornecedor", "cnpj_cpf", "nf_doc_extraido", "fonte", "dda_itau", "checklist", "observacao"];
+  const headers = ["tratado_pendente", "last_changed_by", "last_changed_at", "tratativa", "prioridade", "vencimento", "dias_para_vencer", "valor", "fornecedor", "fonte", "nf_doc_extraido", "dda_itau", "checklist", "observacao"];
   const lines = [headers.join(";")].concat(state.rows.map((row) => headers.map((field) => {
     const value = field === "dias_para_vencer"
       ? daysUntilDue(row.vencimento)
       : field === "tratativa"
         ? state.treatments.get(String(row.id))?.value || ""
-        : row[field];
+        : field === "fonte"
+          ? sourceName(row)
+          : row[field];
     return csvValue(value);
   }).join(";")));
   const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });

@@ -205,8 +205,41 @@ h2 {
 
 .due-quick-filters {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
+}
+
+.scope-filter-group {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.scope-filter-button {
+  min-width: 0;
+  min-height: 34px;
+  border-color: #b8c8c3;
+  border-radius: 4px;
+  background: #fff;
+  color: #41554f;
+  padding: 6px 8px;
+  font-size: 10px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.scope-filter-button:not(.secondary):hover {
+  border-color: var(--sd-secondary);
+  background: #edf4f1;
+  color: var(--sd-primary);
+}
+
+.scope-filter-button.active,
+.scope-filter-button.active:not(.secondary):hover {
+  border-color: var(--sd-primary);
+  background: var(--sd-primary);
+  color: #fff;
 }
 
 .due-filter-button {
@@ -724,8 +757,12 @@ body.boletos-mode #filtersForm .inline-grid {
 }
 
 body.boletos-mode #filtersForm .due-quick-filters {
+  grid-column: span 2;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+body.boletos-mode #filtersForm .scope-filter-group {
   grid-column: span 3;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 body.boletos-mode #filtersForm .check-row,
@@ -765,7 +802,7 @@ body.boletos-mode .results-panel {
 }
 
 body.boletos-mode table {
-  min-width: 2020px;
+  min-width: 1880px;
   border-collapse: collapse;
   border-radius: 0;
   box-shadow: none;
@@ -983,13 +1020,20 @@ body.boletos-mode .last-change-cell span {
 
 .treatment-column,
 .treatment-entry-cell {
-  width: 220px;
-  min-width: 220px;
+  width: 238px;
+  min-width: 238px;
+}
+
+.treatment-cell-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .treatment-box {
   display: flex;
-  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
   min-height: 28px;
   align-items: center;
   gap: 7px;
@@ -1046,6 +1090,46 @@ body.boletos-mode .last-change-cell span {
 
 .treatment-note-icon::after {
   top: 8px;
+}
+
+.treatment-view-button {
+  position: relative;
+  flex: 0 0 auto;
+  width: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  border-color: #7fa99a;
+  border-radius: 4px;
+  background: #e3f0ea;
+  color: var(--sd-primary);
+  padding: 0;
+}
+
+.treatment-view-button:not(.secondary):hover {
+  border-color: var(--sd-primary);
+  background: #d4e8df;
+  color: var(--sd-primary);
+}
+
+.treatment-eye-icon {
+  position: absolute;
+  top: 8px;
+  left: 6px;
+  width: 14px;
+  height: 10px;
+  border: 1.5px solid currentColor;
+  border-radius: 50% 50% 45% 45%;
+}
+
+.treatment-eye-icon::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 body.boletos-mode .group-row td {
@@ -1313,6 +1397,54 @@ body.boletos-mode .group-total {
   justify-content: flex-end;
 }
 
+.treatment-view-dialog {
+  width: min(460px, calc(100vw - 32px));
+  border: 1px solid #8eb8aa;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  padding: 16px;
+  box-shadow: 0 22px 60px rgba(15, 49, 41, 0.26);
+}
+
+.treatment-view-dialog::backdrop {
+  background: rgba(15, 35, 30, 0.45);
+}
+
+.treatment-view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.treatment-view-header h2 {
+  font-size: 17px;
+}
+
+.treatment-view-text {
+  min-height: 72px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #b8c8c3;
+  border-radius: 5px;
+  background: #f7faf8;
+  color: #243c35;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.treatment-view-meta {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-align: right;
+}
+
 @media (max-width: 1180px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -1370,6 +1502,10 @@ body.boletos-mode .group-total {
 
   body.boletos-mode #filtersForm .due-quick-filters {
     grid-column: auto;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  body.boletos-mode #filtersForm .scope-filter-group {
+    grid-column: auto;
   }
 }
