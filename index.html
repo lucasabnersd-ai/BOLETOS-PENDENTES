@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Painel de Boletos Pendentes</title>
-    <link rel="stylesheet" href="./styles.css?v=20260621-12" />
+    <link rel="stylesheet" href="./styles.css?v=20260621-13" />
   </head>
   <body>
     <header class="app-header">
@@ -89,6 +89,7 @@
               </label>
             </div>
             <div id="dueQuickFilters" class="due-quick-filters" role="group" aria-label="Filtros rapidos de vencimento">
+              <button type="button" class="due-filter-button" data-due-days="0" data-due-mode="exact" aria-pressed="false">Vence hoje</button>
               <button type="button" class="due-filter-button" data-due-days="1" data-due-mode="exact" aria-pressed="false">Vence em 1 dia</button>
               <button type="button" class="due-filter-button" data-due-days="2" data-due-mode="exact" aria-pressed="false">Vence em 2 dias</button>
               <button type="button" class="due-filter-button" data-due-days="3" data-due-mode="exact" aria-pressed="false">Vence em 3 dias</button>
@@ -223,6 +224,6 @@
     </dialog>
 
     <div id="toast" class="toast" hidden></div>
-    <script type="module" src="./app.js?v=20260621-12"></script>
+    <script type="module" src="./app.js?v=20260621-13"></script>
   </body>
 </html>
