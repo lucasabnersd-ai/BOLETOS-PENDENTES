@@ -548,7 +548,7 @@ function renderTreatmentBox(row) {
     <div class="treatment-cell-actions">
       <button type="button" class="treatment-box ${value ? "has-treatment" : ""}" data-action="edit-treatment" title="Adicionar nova tratativa" aria-label="Adicionar nova tratativa">
         <span class="treatment-note-icon" aria-hidden="true"></span>
-        <span class="treatment-preview">${value ? escapeHtml(value) : "Adicionar tratativa"}</span>
+        <span class="treatment-preview">Adicionar tratativa</span>
         ${count ? `<span class="treatment-count-badge" aria-label="${count} tratativa${count === 1 ? "" : "s"}">${count}</span>` : ""}
       </button>
       ${count ? `<button type="button" class="treatment-view-button" data-action="view-treatment" title="Visualizar historico de tratativas" aria-label="Visualizar ${count} tratativa${count === 1 ? "" : "s"}"><span class="treatment-eye-icon" aria-hidden="true"></span></button>` : ""}
