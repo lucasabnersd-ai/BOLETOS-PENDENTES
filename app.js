@@ -26,6 +26,9 @@ const refs = {
   origemFilter: document.querySelector("#origemFilter"),
   prioridadeFilter: document.querySelector("#prioridadeFilter"),
   associacaoFilter: document.querySelector("#associacaoFilter"),
+  dueQuickFilters: document.querySelector("#dueQuickFilters"),
+  startDate: document.querySelector("#startDate"),
+  endDate: document.querySelector("#endDate"),
   tableWrap: document.querySelector(".table-wrap"),
   rowsBody: document.querySelector("#rowsBody"),
   resultCount: document.querySelector("#resultCount"),
@@ -74,12 +77,15 @@ function bindEvents() {
   refs.filtersForm.addEventListener("input", (event) => {
     if (event.target.matches('[data-mask="currency"]')) maskCurrencyInput(event.target);
     if (event.target.matches('[data-mask="date"]')) maskDateInput(event.target);
+    if (event.target === refs.startDate || event.target === refs.endDate) clearDueQuickFilterSelection();
   });
 
   refs.filtersForm.addEventListener("change", () => applyFilters());
+  refs.dueQuickFilters.addEventListener("click", handleDueQuickFilter);
   refs.refreshButton.addEventListener("click", () => withBusy(refs.refreshButton, refreshAll));
   refs.clearButton.addEventListener("click", () => {
     refs.filtersForm.reset();
+    clearDueQuickFilterSelection();
     applyFilters();
   });
   refs.exportButton.addEventListener("click", exportCsv);
@@ -92,6 +98,49 @@ function bindEvents() {
   refs.rowsBody.addEventListener("blur", handleTableBlur, true);
   refs.rowsBody.addEventListener("click", handleTableClick);
   enableHorizontalDrag(refs.tableWrap);
+}
+
+function handleDueQuickFilter(event) {
+  const button = event.target.closest(".due-filter-button");
+  if (!button) return;
+
+  const wasActive = button.classList.contains("active");
+  clearDueQuickFilterSelection();
+
+  if (wasActive) {
+    refs.startDate.value = "";
+    refs.endDate.value = "";
+    applyFilters();
+    return;
+  }
+
+  const days = Number(button.dataset.dueDays || 0);
+  const isRange = button.dataset.dueMode === "range";
+  refs.startDate.value = formatInputDate(daysFromToday(isRange ? 1 : days));
+  refs.endDate.value = formatInputDate(daysFromToday(days));
+  button.classList.add("active");
+  button.setAttribute("aria-pressed", "true");
+  applyFilters();
+}
+
+function clearDueQuickFilterSelection() {
+  refs.dueQuickFilters.querySelectorAll(".due-filter-button").forEach((button) => {
+    button.classList.remove("active");
+    button.setAttribute("aria-pressed", "false");
+  });
+}
+
+function daysFromToday(days) {
+  const date = new Date();
+  date.setHours(12, 0, 0, 0);
+  date.setDate(date.getDate() + days);
+  return date;
+}
+
+function formatInputDate(date) {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${day}/${month}/${date.getFullYear()}`;
 }
 
 async function refreshAll() {
@@ -340,11 +389,12 @@ function renderGroupHeader(group, isCollapsed) {
   const review = count(group.rows, (row) => normalizeText(row.situacao_associacao).includes("revisao"));
   const maxPriority = count(group.rows, (row) => normalizeText(row.prioridade).includes("maxima"));
   const encodedKey = escapeAttr(group.key);
+  const weekend = state.filters.groupBy === "vencimento" ? renderWeekendIndicator(group.rawKey) : "";
   return `
     <tr class="group-row ${isCollapsed ? "collapsed" : ""}">
       <td colspan="3">
         <button class="group-toggle" type="button" data-group-key="${encodedKey}" title="Abrir ou recolher grupo">${isCollapsed ? "+" : "-"}</button>
-        <strong>${escapeHtml(group.label)}</strong>
+        <strong>${escapeHtml(group.label)}</strong>${weekend}
       </td>
       <td class="num">${group.rows.length}</td>
       <td class="num group-total">${formatCurrency(total)}</td>
@@ -375,7 +425,7 @@ function renderRow(row) {
     <tr data-id="${escapeHtml(row.id)}">
       <td class="status-column treatment-cell">${renderSelect(row, "tratado_pendente", ["PENDENTE", "TRATADO", "EM ANALISE", "CANCELADO"])}</td>
       <td class="status-column priority-cell">${priorityBadge(row.prioridade)}</td>
-      <td class="nowrap">${formatDate(row.vencimento)}</td>
+      <td class="nowrap">${formatDate(row.vencimento)}${renderWeekendIndicator(row.vencimento)}</td>
       <td class="num">${escapeHtml(row.dias_para_vencer ?? "-")}</td>
       <td class="num"><span class="money">${formatCurrency(row.valor)}</span></td>
       <td class="supplier-cell">${escapeHtml(row.fornecedor || "-")}</td>
@@ -718,6 +768,20 @@ function formatDate(value) {
   if (!value) return "-";
   const [year, month, day] = String(value).slice(0, 10).split("-");
   return year && month && day ? `${day}/${month}/${year}` : escapeHtml(value);
+}
+
+function renderWeekendIndicator(value) {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return "";
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12);
+  const weekDay = date.getDay();
+  if (weekDay !== 0 && weekDay !== 6) return "";
+
+  const isSaturday = weekDay === 6;
+  const label = isSaturday ? "SAB" : "DOM";
+  const className = isSaturday ? "saturday" : "sunday";
+  const description = isSaturday ? "Vencimento no sabado" : "Vencimento no domingo";
+  return `<span class="weekend-indicator ${className}" title="${description}" aria-label="${description}"><span class="weekend-calendar-icon" aria-hidden="true"></span><strong>${label}</strong></span>`;
 }
 
 function formatDateTime(value) {

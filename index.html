@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Painel de Boletos Pendentes</title>
-    <link rel="stylesheet" href="./styles.css?v=20260620-3" />
+    <link rel="stylesheet" href="./styles.css?v=20260620-4" />
   </head>
   <body>
     <header class="app-header">
@@ -98,6 +98,12 @@
                 Venc. final
                 <input id="endDate" name="end_date" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" data-mask="date" />
               </label>
+            </div>
+            <div id="dueQuickFilters" class="due-quick-filters" role="group" aria-label="Filtros rapidos de vencimento">
+              <button type="button" class="due-filter-button" data-due-days="1" data-due-mode="exact" aria-pressed="false">Vence em 1 dia</button>
+              <button type="button" class="due-filter-button" data-due-days="2" data-due-mode="exact" aria-pressed="false">Vence em 2 dias</button>
+              <button type="button" class="due-filter-button" data-due-days="3" data-due-mode="exact" aria-pressed="false">Vence em 3 dias</button>
+              <button type="button" class="due-filter-button" data-due-days="7" data-due-mode="range" aria-pressed="false">Vence nos proximos 7 dias</button>
             </div>
             <label class="check-row">
               <input id="pendingOnly" name="pending_only" type="checkbox" />
@@ -194,6 +200,6 @@
     </main>
 
     <div id="toast" class="toast" hidden></div>
-    <script type="module" src="./app.js?v=20260620-3"></script>
+    <script type="module" src="./app.js?v=20260620-4"></script>
   </body>
 </html>

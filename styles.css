@@ -203,6 +203,38 @@ h2 {
   gap: 8px;
 }
 
+.due-quick-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.due-filter-button {
+  min-height: 34px;
+  border-color: #b8c8c3;
+  border-radius: 4px;
+  background: #fff;
+  color: #41554f;
+  padding: 6px 8px;
+  font-size: 10px;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.due-filter-button:not(.secondary):hover {
+  border-color: var(--sd-secondary);
+  background: #edf4f1;
+  color: var(--sd-primary);
+}
+
+.due-filter-button.active,
+.due-filter-button.active:not(.secondary):hover {
+  border-color: var(--sd-secondary);
+  background: var(--sd-secondary);
+  color: #fff;
+  box-shadow: inset 0 -2px 0 var(--sd-primary);
+}
+
 label {
   display: grid;
   gap: 6px;
@@ -485,6 +517,48 @@ td input {
   white-space: nowrap;
 }
 
+.weekend-indicator {
+  display: inline-flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 2px 5px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 8px;
+  font-weight: 900;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.weekend-indicator.saturday {
+  background: #fff7e8;
+  color: #9a5200;
+}
+
+.weekend-indicator.sunday {
+  background: #fff0ef;
+  color: #ad2f27;
+}
+
+.weekend-calendar-icon {
+  position: relative;
+  width: 11px;
+  height: 10px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+}
+
+.weekend-calendar-icon::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: 1px;
+  left: 1px;
+  border-top: 2px solid currentColor;
+}
+
 .supplier-cell {
   min-width: 260px;
   font-weight: 700;
@@ -649,6 +723,11 @@ body.boletos-mode #filtersForm {
 
 body.boletos-mode #filtersForm .inline-grid {
   grid-template-columns: 1fr 1fr;
+}
+
+body.boletos-mode #filtersForm .due-quick-filters {
+  grid-column: span 2;
+  grid-template-columns: repeat(4, minmax(118px, 1fr));
 }
 
 body.boletos-mode #filtersForm .check-row,
@@ -1086,5 +1165,10 @@ body.boletos-mode .group-total {
 
   body.boletos-mode .app-shell {
     padding: 10px;
+  }
+
+  body.boletos-mode #filtersForm .due-quick-filters {
+    grid-column: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
