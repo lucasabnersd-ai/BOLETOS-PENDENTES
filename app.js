@@ -305,7 +305,10 @@ function renderKpis() {
   const rows = state.rows;
   const totalValue = sum(rows, (row) => Number(row.valor || 0));
   const maxPriority = count(rows, (row) => normalizeText(row.prioridade).includes("maxima"));
-  const vencidos = count(rows, (row) => Number(row.dias_para_vencer ?? 0) < 0 || normalizeText(row.situacao_vencimento).includes("vencido"));
+  const vencidos = count(rows, (row) => {
+    const days = daysUntilDue(row.vencimento);
+    return days == null ? normalizeText(row.situacao_vencimento).includes("vencido") : days < 0;
+  });
   const dda = count(rows, (row) => normalizeText(row.dda_itau) === "sim");
   const revisao = count(rows, (row) => normalizeText(row.situacao_associacao).includes("revisao"));
   const cards = [
@@ -419,12 +422,13 @@ function groupLabel(row, field, rawKey) {
 }
 
 function renderRow(row) {
+  const days = daysUntilDue(row.vencimento);
   return `
     <tr data-id="${escapeHtml(row.id)}">
       <td class="status-column treatment-cell">${renderSelect(row, "tratado_pendente", ["PENDENTE", "TRATADO", "EM ANALISE", "CANCELADO"])}</td>
       <td class="status-column priority-cell">${priorityBadge(row.prioridade)}</td>
       <td class="nowrap">${formatDate(row.vencimento)}${renderWeekendIndicator(row.vencimento)}</td>
-      <td class="num">${escapeHtml(row.dias_para_vencer ?? "-")}</td>
+      <td class="num">${days == null ? "-" : escapeHtml(days)}</td>
       <td class="num"><span class="money">${formatCurrency(row.valor)}</span></td>
       <td class="supplier-cell">${escapeHtml(row.fornecedor || "-")}</td>
       <td class="nowrap">${escapeHtml(row.cnpj_cpf || "-")}</td>
@@ -660,7 +664,10 @@ function activateTab(tab) {
 
 function exportCsv() {
   const headers = ["tratado_pendente", "prioridade", "vencimento", "dias_para_vencer", "valor", "fornecedor", "cnpj_cpf", "nf_doc_extraido", "fonte", "origem", "dda_itau", "checklist", "last_changed_by", "last_changed_at", "observacao"];
-  const lines = [headers.join(";")].concat(state.rows.map((row) => headers.map((field) => csvValue(row[field])).join(";")));
+  const lines = [headers.join(";")].concat(state.rows.map((row) => headers.map((field) => {
+    const value = field === "dias_para_vencer" ? daysUntilDue(row.vencimento) : row[field];
+    return csvValue(value);
+  }).join(";")));
   const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -687,13 +694,22 @@ function groupBy(rows, getter) {
 }
 
 function dueBucket(row) {
-  const days = Number(row.dias_para_vencer ?? 0);
-  if (Number.isNaN(days)) return row.situacao_vencimento || "Sem data";
+  const days = daysUntilDue(row.vencimento);
+  if (days == null) return row.situacao_vencimento || "Sem data";
   if (days < 0) return "Vencido";
   if (days === 0) return "Vence hoje";
   if (days <= 3) return "Ate 3 dias";
   if (days <= 7) return "Ate 7 dias";
   return "Acima de 7 dias";
+}
+
+function daysUntilDue(value) {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return null;
+  const dueDate = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  const today = new Date();
+  const todayDate = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  return Math.round((dueDate - todayDate) / 86400000);
 }
 
 function count(rows, predicate) {

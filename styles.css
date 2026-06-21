@@ -210,6 +210,7 @@ h2 {
 }
 
 .due-filter-button {
+  min-width: 0;
   min-height: 34px;
   border-color: #b8c8c3;
   border-radius: 4px;
@@ -218,7 +219,9 @@ h2 {
   padding: 6px 8px;
   font-size: 10px;
   line-height: 1.15;
+  overflow-wrap: anywhere;
   text-align: center;
+  white-space: normal;
 }
 
 .due-filter-button:not(.secondary):hover {
@@ -726,8 +729,8 @@ body.boletos-mode #filtersForm .inline-grid {
 }
 
 body.boletos-mode #filtersForm .due-quick-filters {
-  grid-column: span 2;
-  grid-template-columns: repeat(4, minmax(118px, 1fr));
+  grid-column: span 3;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 body.boletos-mode #filtersForm .check-row,
