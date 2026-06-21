@@ -20,7 +20,6 @@ const refs = {
   refreshButton: document.querySelector("#refreshButton"),
   clearButton: document.querySelector("#clearButton"),
   exportButton: document.querySelector("#exportButton"),
-  viewSelect: document.querySelector("#viewSelect"),
   groupBySelect: document.querySelector("#groupBySelect"),
   fonteFilter: document.querySelector("#fonteFilter"),
   origemFilter: document.querySelector("#origemFilter"),
@@ -257,7 +256,6 @@ function applyFilters() {
     startDate: normalizeDate(form.get("start_date")),
     endDate: normalizeDate(form.get("end_date")),
     pendingOnly: Boolean(form.get("pending_only")),
-    view: String(form.get("view") || "all"),
     groupBy: String(form.get("group_by") || ""),
   };
   state.filters = filters;
@@ -468,15 +466,7 @@ function priorityBadge(value) {
 }
 
 function renderModels() {
-  const dimension = state.filters.view === "all" ? "fonte" : state.filters.view;
-  const labelMap = {
-    fonte: "Fonte",
-    origem: "Origem",
-    prioridade: "Prioridade",
-    situacao_associacao: "Associacao",
-    dda_itau: "DDA Itau",
-  };
-  const groups = groupBy(state.rows, (row) => row[dimension] || row.fonte || "Sem modelo");
+  const groups = groupBy(state.rows, (row) => row.fonte || row.modelo || "Sem fonte");
   const entries = [...groups.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "pt-BR"));
   refs.modelCount.textContent = `${entries.length} grupo${entries.length === 1 ? "" : "s"}`;
   if (!entries.length) {
@@ -487,7 +477,7 @@ function renderModels() {
   refs.modelGrid.innerHTML = `
     <div class="model-table" role="table" aria-label="Distribuicao dos boletos">
       <div class="model-table-header" role="row">
-        <span role="columnheader">${escapeHtml(labelMap[dimension] || "Grupo")}</span>
+        <span role="columnheader">Fonte</span>
         <span role="columnheader" class="num">Boletos</span>
         <span role="columnheader" class="num">Valor</span>
         <span role="columnheader" class="num">Pendentes</span>
