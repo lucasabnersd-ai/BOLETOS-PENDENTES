@@ -284,6 +284,14 @@ h2 {
   min-width: 0;
 }
 
+body.overview-mode .app-shell {
+  grid-template-columns: 1fr;
+}
+
+body.overview-mode .side-panel {
+  display: none;
+}
+
 .panel,
 .results-panel,
 .tabs {

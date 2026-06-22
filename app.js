@@ -977,6 +977,7 @@ function activateTab(tab) {
     panel.classList.toggle("active", panel.id === `${tab}Tab`);
   });
   document.body.classList.toggle("boletos-mode", tab === "boletos");
+  document.body.classList.toggle("overview-mode", tab === "overview");
 }
 
 function exportCsv() {
