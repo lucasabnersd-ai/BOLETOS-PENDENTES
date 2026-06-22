@@ -23,7 +23,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-"%GIT%" add index.html styles.css app.js update-meta.json data\initial.json scripts\sync_excel_to_supabase.py ATUALIZAR_BOLETOS_PENDENTES.cmd README.md assets\. .nojekyll .gitignore
+"%GIT%" add index.html styles.css app.js scripts\sync_excel_to_supabase.py ATUALIZAR_BOLETOS_PENDENTES.cmd README.md assets\. .nojekyll .gitignore tests\.
 "%GIT%" diff --cached --quiet
 if not errorlevel 1 (
   echo.

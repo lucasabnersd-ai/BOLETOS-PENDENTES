@@ -56,14 +56,17 @@ FIELD_MAP = {
 def main() -> int:
     parser = argparse.ArgumentParser(description="Sincroniza BOLETOS PENDENTES A ASSOCIAR.xlsx com Supabase e GitHub Pages.")
     parser.add_argument("--workbook", default=DEFAULT_WORKBOOK, help="Caminho da planilha fonte.")
-    parser.add_argument("--repo", default=str(Path(__file__).resolve().parents[1]), help="Pasta do repositorio.")
+    parser.add_argument(
+      "--repo",
+      default=str(Path(__file__).resolve().parents[1]),
+      help="Mantido por compatibilidade; nenhum arquivo financeiro e gravado no repositorio.",
+    )
     parser.add_argument("--delete-missing", action="store_true", help="Remove da base online boletos que nao estao mais na planilha.")
     parser.add_argument("--no-delete-missing", dest="delete_missing", action="store_false")
     parser.set_defaults(delete_missing=True)
     args = parser.parse_args()
 
     workbook = Path(args.workbook)
-    repo = Path(args.repo)
     if not workbook.exists():
       raise SystemExit(f"Planilha nao encontrada: {workbook}")
 
@@ -79,7 +82,6 @@ def main() -> int:
     meta = build_meta(workbook, rows, summary)
     upsert_meta(meta)
     insert_audit({"source": "sync_excel_to_supabase", "row_count": len(rows), "workbook": str(workbook)})
-    write_snapshot(repo, rows, meta)
     print(f"OK: {len(rows)} boletos sincronizados em {dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}.")
     return 0
 
@@ -385,19 +387,6 @@ def read_windows_credential() -> str:
 def chunks(values: list[dict[str, Any]], size: int):
     for index in range(0, len(values), size):
       yield values[index:index + size]
-
-
-def write_snapshot(repo: Path, rows: list[dict[str, Any]], meta: dict[str, Any]) -> None:
-    data_dir = repo / "data"
-    data_dir.mkdir(parents=True, exist_ok=True)
-    (data_dir / "initial.json").write_text(
-      json.dumps({"meta": meta, "rows": rows}, ensure_ascii=False, indent=2, default=to_jsonable),
-      encoding="utf-8",
-    )
-    (repo / "update-meta.json").write_text(
-      json.dumps(meta, ensure_ascii=False, indent=2, default=to_jsonable),
-      encoding="utf-8",
-    )
 
 
 if __name__ == "__main__":

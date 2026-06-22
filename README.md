@@ -7,7 +7,7 @@ Painel online para acompanhar a base `BOLETOS PENDENTES A ASSOCIAR.xlsx` com a i
 - Le a tabela `Boletos Pendentes` da planilha compartilhada.
 - Cria uma chave unica por boleto usando codigo de barras, linha digitavel, fonte, fornecedor, documento, valor e vencimento.
 - Alimenta a tabela `boleto_pendentes_items` no Supabase.
-- Publica um snapshot em `data/initial.json` e metadados em `update-meta.json`.
+- Mantem os dados financeiros somente no Supabase protegido por autenticacao e RLS; nenhum snapshot da planilha e publicado no GitHub Pages.
 - Mostra abas de visao geral, boletos e modelos.
 - Permite editar o status tratado/pendente e registrar tratativas com historico; os demais campos ficam em modo de leitura.
 - Exige login e registra automaticamente o usuario responsavel por cada alteracao.
@@ -27,8 +27,8 @@ Ele executa:
 1. Le a planilha compartilhada.
 2. Envia as linhas novas/alteradas para o Supabase.
 3. Remove da base online boletos que nao estao mais na planilha.
-4. Atualiza `data/initial.json` e `update-meta.json`.
-5. Faz commit e push no GitHub.
+4. Atualiza os metadados da importacao na tabela protegida do Supabase.
+5. Publica somente alteracoes do codigo do painel, sem arquivos com registros financeiros.
 
 ## Publicacao
 

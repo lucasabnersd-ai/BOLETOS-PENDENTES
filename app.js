@@ -1,4 +1,4 @@
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/+esm";
 
 const SUPABASE_URL = "https://pyrniqluywejmgzqkari.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_fXWQGDirOvs5xfxZDaSOtg_Jgd7vcbu";
@@ -163,10 +163,13 @@ async function handleLogin(event) {
 async function handleLogout() {
   refs.logoutButton.disabled = true;
   try {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    deactivateSession();
+  } catch (error) {
+    toast(error.message || "Nao foi possivel sair.");
   } finally {
     refs.logoutButton.disabled = false;
-    deactivateSession();
   }
 }
 
@@ -957,12 +960,13 @@ async function updateRowField(input) {
 }
 
 async function recordAudit(itemId, action, payload, oldValue = null) {
-  await supabase.from(AUDIT_TABLE).insert({
+  const { error } = await supabase.from(AUDIT_TABLE).insert({
     item_id: itemId,
     field_name: payload.field || action,
     old_value: oldValue,
     new_value: { action, payload },
   });
+  if (error) throw error;
 }
 
 function currentOperatorName() {
@@ -1004,7 +1008,9 @@ function exportCsv() {
 }
 
 function csvValue(value) {
-  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+  const text = String(value ?? "");
+  const safeText = typeof value === "string" && /^[=+\-@]/.test(text) ? `'${text}` : text;
+  return `"${safeText.replaceAll('"', '""')}"`;
 }
 
 function groupBy(rows, getter) {
