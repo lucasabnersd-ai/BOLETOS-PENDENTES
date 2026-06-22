@@ -3,3 +3,5 @@
 __pycache__/
 .DS_Store
 Thumbs.db
+/data/initial.json
+/update-meta.json
