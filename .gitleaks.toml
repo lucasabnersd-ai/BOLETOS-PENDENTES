@@ -1,0 +1,18 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Ignore non-secret 24-character source keys in the generated boleto data"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+paths = ['''^data/initial\.json$''']
+regexes = ['''"source_key"\s*:\s*"[0-9a-f]{24}"''']
+
+[[allowlists]]
+description = "Ignore Supabase publishable keys in the browser and sync client"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+paths = ['''^(?:app\.js|scripts/sync_excel_to_supabase\.py)$''']
+regexes = ['''(?i)SUPABASE_(?:PUBLISHABLE_)?KEY\s*=.*sb_publishable_[A-Za-z0-9_-]+''']
