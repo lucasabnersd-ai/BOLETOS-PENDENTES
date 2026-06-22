@@ -1,30 +1,27 @@
 {
-  "generated_at": "2026-06-17T16:59:39.368872+00:00",
+  "generated_at": "2026-06-22T10:33:38.643426+00:00",
   "workbook_path": "C:\\Users\\lucas\\Grupo S&D\\Gabriella Karla Oliveira Milas - FINANCEIRO COMPARTILHADO\\LUCAS ABNER ARAUJO\\BOLETOS PENDENTES A ASSOCIAR.xlsx",
   "workbook_name": "BOLETOS PENDENTES A ASSOCIAR.xlsx",
-  "workbook_modified_at": "2026-06-17T12:30:44+00:00",
-  "row_count": 322,
+  "workbook_modified_at": "2026-06-21T01:14:57+00:00",
+  "row_count": 332,
   "duplicate_count": 0,
-  "total_value": 1176335.41,
+  "total_value": 1199697.92,
   "sources": {
-    "BOLETOS_ITAU": 174,
-    "CENTRAL_GRAZIELA": 130,
-    "CENTRAL_LUCAS": 16,
-    "BOLETOS_LARISSA": 2
+    "BOLETOS_ITAU": 191,
+    "CENTRAL DE NOTAS": 141
   },
   "origins": {
     "graziela.silva@sdflorestal.com.br": 130,
-    "S D FLORESTAL LOGISTICA LTDA": 100,
-    "S E D FLORESTAL BIOENERGIA LTD": 37,
-    "CAPIVARA DE MINHAS PARTICIPACO": 33,
-    "financeiro.bioenergia@sdflorestal.com.br": 16,
+    "S D FLORESTAL LOGISTICA LTDA": 115,
+    "CAPIVARA DE MINHAS PARTICIPACO": 36,
+    "S E D FLORESTAL BIOENERGIA LTD": 36,
+    "financeiro.bioenergia@sdflorestal.com.br": 11,
     "BRASMAC MAQUINAS E VEICULOS LT": 2,
-    "S D FLORESTAL VIOFLORESTAS LTD": 2,
-    "Sem valor": 2
+    "S D FLORESTAL VIOFLORESTAS LTD": 2
   },
   "priorities": {
-    "PRIORIDADE MÉDIA": 149,
-    "PRIORIDADE MÁXIMA": 148,
-    "VENCIDO ONTEM": 25
+    "PRIORIDADE MÁXIMA": 203,
+    "PRIORIDADE MÉDIA": 94,
+    "VENCIDO ONTEM": 35
   }
 }

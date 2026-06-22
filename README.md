@@ -10,6 +10,7 @@ Painel online para acompanhar a base `BOLETOS PENDENTES A ASSOCIAR.xlsx` com a i
 - Publica um snapshot em `data/initial.json` e metadados em `update-meta.json`.
 - Mostra abas de visao geral, boletos e modelos.
 - Permite editar o status tratado/pendente e registrar tratativas com historico; os demais campos ficam em modo de leitura.
+- Exige login e registra automaticamente o usuario responsavel por cada alteracao.
 - Unifica fontes `CENTRAL_*` como `CENTRAL DE NOTAS` e oferece filtros rapidos para todos, DDA e Central de Notas.
 - Atualiza automaticamente a tela por Realtime e tambem por polling a cada 60 segundos.
 
@@ -43,4 +44,9 @@ Se o Pages ainda nao estiver ativo, habilite em `Settings > Pages` usando branch
 
 ## Configuracao Supabase
 
-O frontend usa somente a publishable key do Supabase. A tabela foi preparada para colaboracao publica conforme a necessidade operacional informada: qualquer pessoa com o link pode visualizar e editar os campos operacionais do painel.
+O frontend usa somente a publishable key do Supabase e exige uma sessao autenticada. As politicas RLS bloqueiam leitura e escrita anonimas.
+
+- `standard`: consulta, atualiza o status e registra tratativas.
+- `admin`: possui o acesso operacional e tambem pode executar a importacao completa.
+
+O atualizador diario autentica o administrador usando a credencial `boletospendentes-supabase`, armazenada no Gerenciador de Credenciais do Windows. Nenhuma senha fica salva no repositorio.

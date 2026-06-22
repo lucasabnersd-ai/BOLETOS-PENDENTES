@@ -4,9 +4,33 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Painel de Boletos Pendentes</title>
-    <link rel="stylesheet" href="./styles.css?v=20260621-13" />
+    <link rel="stylesheet" href="./styles.css?v=20260622-1" />
   </head>
-  <body>
+  <body class="auth-pending">
+    <section id="authGate" class="auth-gate" aria-labelledby="loginTitle">
+      <div class="auth-panel">
+        <div class="auth-brand">
+          <img src="./assets/logo-sd-white.svg" alt="S&amp;D" />
+          <div>
+            <span class="eyebrow">Financeiro S&amp;D</span>
+            <h1 id="loginTitle">Painel de Boletos Pendentes</h1>
+          </div>
+        </div>
+        <form id="loginForm" class="auth-form">
+          <label for="loginEmail">
+            E-mail
+            <input id="loginEmail" type="email" autocomplete="username" required />
+          </label>
+          <label for="loginPassword">
+            Senha
+            <input id="loginPassword" type="password" autocomplete="current-password" required />
+          </label>
+          <p id="loginError" class="auth-error" role="alert" hidden></p>
+          <button id="loginButton" type="submit">Entrar</button>
+        </form>
+      </div>
+    </section>
+
     <header class="app-header">
       <div class="brand-lockup">
         <div class="brand-mark" aria-hidden="true">
@@ -22,6 +46,13 @@
         <span id="apiStatus" class="pill muted">Supabase verificando</span>
         <span id="syncStatus" class="pill muted">Atualizacao verificando</span>
         <span id="rowStatus" class="pill">0 boletos</span>
+        <div id="userIdentity" class="user-identity">
+          <span>
+            <strong id="userDisplayName">Usuario</strong>
+            <small id="userRole">Acesso padrao</small>
+          </span>
+          <button id="logoutButton" type="button" class="logout-button">Sair</button>
+        </div>
       </div>
     </header>
 
@@ -38,18 +69,13 @@
               <input id="searchInput" name="search" placeholder="Fornecedor, CNPJ, NF, origem..." />
             </label>
             <label>
-              Seu nome
-              <input id="operatorName" name="operator_name" placeholder="Pessoa que esta alterando" autocomplete="name" />
-            </label>
-            <label>
-              Agrupar
-              <select id="groupBySelect" name="group_by">
-                <option value="" selected>Sem agrupamento</option>
-                <option value="vencimento">Vencimento</option>
-                <option value="origem">Origem/empresa</option>
-                <option value="fonte">Modelo/fonte</option>
-                <option value="prioridade">Prioridade</option>
-                <option value="situacao_associacao">Associacao</option>
+              Tratado
+              <select id="treatedFilter" name="treated_status">
+                <option value="" selected>Todos</option>
+                <option value="PENDENTE">Pendente</option>
+                <option value="EM ANALISE">Em analise</option>
+                <option value="TRATADO">Tratado</option>
+                <option value="CANCELADO">Cancelado</option>
               </select>
             </label>
             <label>
@@ -100,10 +126,6 @@
               <button type="button" class="scope-filter-button" data-scope="central" aria-pressed="false">Central de Notas</button>
             </div>
             <input id="sourceScope" name="source_scope" type="hidden" value="all" />
-            <label class="check-row">
-              <input id="pendingOnly" name="pending_only" type="checkbox" />
-              Somente pendentes
-            </label>
             <div class="button-row">
               <button type="submit">Aplicar</button>
               <button id="clearButton" type="button" class="secondary">Limpar</button>
@@ -224,6 +246,6 @@
     </dialog>
 
     <div id="toast" class="toast" hidden></div>
-    <script type="module" src="./app.js?v=20260621-14"></script>
+    <script type="module" src="./app.js?v=20260622-1"></script>
   </body>
 </html>

@@ -19,10 +19,13 @@ from openpyxl import load_workbook
 
 SUPABASE_URL = os.environ.get("BOLETOS_SUPABASE_URL", "https://pyrniqluywejmgzqkari.supabase.co").rstrip("/")
 SUPABASE_KEY = os.environ.get("BOLETOS_SUPABASE_KEY", "sb_publishable_fXWQGDirOvs5xfxZDaSOtg_Jgd7vcbu")
+SUPABASE_AUTH_EMAIL = os.environ.get("BOLETOS_AUTH_EMAIL", "lucas.araujo@sdflorestal.com.br")
+SUPABASE_CREDENTIAL_TARGET = os.environ.get("BOLETOS_CREDENTIAL_TARGET", "boletospendentes-supabase")
 ITEMS_TABLE = "boleto_pendentes_items"
 META_TABLE = "boleto_pendentes_meta"
 AUDIT_TABLE = "boleto_pendentes_audit"
 DEFAULT_WORKBOOK = r"C:\Users\lucas\Grupo S&D\Gabriella Karla Oliveira Milas - FINANCEIRO COMPARTILHADO\LUCAS ABNER ARAUJO\BOLETOS PENDENTES A ASSOCIAR.xlsx"
+_ACCESS_TOKEN: str | None = None
 
 
 FIELD_MAP = {
@@ -68,6 +71,7 @@ def main() -> int:
     if not rows:
       raise SystemExit("Nenhuma linha valida encontrada na aba Boletos Pendentes.")
 
+    get_access_token()
     upsert_rows(rows)
     if args.delete_missing:
       delete_missing_rows({row["source_key"] for row in rows})
@@ -313,7 +317,7 @@ def request_json(method: str, path: str, payload: Any = None, prefer: str | None
     data = None
     headers = {
       "apikey": SUPABASE_KEY,
-      "Authorization": f"Bearer {SUPABASE_KEY}",
+      "Authorization": f"Bearer {get_access_token()}",
       "Content-Type": "application/json",
     }
     if prefer:
@@ -330,6 +334,52 @@ def request_json(method: str, path: str, payload: Any = None, prefer: str | None
       raise RuntimeError(f"{method} {path} falhou: HTTP {exc.code} {body}") from exc
     except urllib.error.URLError as exc:
       raise RuntimeError(f"{method} {path} falhou: {exc}") from exc
+
+
+def get_access_token() -> str:
+    global _ACCESS_TOKEN
+    if _ACCESS_TOKEN:
+      return _ACCESS_TOKEN
+
+    password = os.environ.get("BOLETOS_AUTH_PASSWORD") or read_windows_credential()
+    payload = json.dumps({"email": SUPABASE_AUTH_EMAIL, "password": password}).encode("utf-8")
+    request = urllib.request.Request(
+      f"{SUPABASE_URL}/auth/v1/token?grant_type=password",
+      data=payload,
+      headers={"apikey": SUPABASE_KEY, "Content-Type": "application/json"},
+      method="POST",
+    )
+    try:
+      with urllib.request.urlopen(request, timeout=30) as response:
+        body = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+      raise RuntimeError(f"Falha ao autenticar o importador: HTTP {exc.code}") from exc
+    except urllib.error.URLError as exc:
+      raise RuntimeError(f"Falha ao autenticar o importador: {exc}") from exc
+
+    token = str(body.get("access_token") or "")
+    if not token:
+      raise RuntimeError("Supabase nao retornou token para o importador.")
+    _ACCESS_TOKEN = token
+    return token
+
+
+def read_windows_credential() -> str:
+    try:
+      import win32cred
+    except ImportError as exc:
+      raise RuntimeError("Modulo win32cred indisponivel. Execute o atualizador com o Python configurado no CMD.") from exc
+
+    try:
+      credential = win32cred.CredRead(SUPABASE_CREDENTIAL_TARGET, win32cred.CRED_TYPE_GENERIC, 0)
+    except Exception as exc:
+      raise RuntimeError(f"Credencial segura '{SUPABASE_CREDENTIAL_TARGET}' nao encontrada no Windows.") from exc
+
+    blob = credential.get("CredentialBlob", b"")
+    password = blob.decode("utf-16-le") if isinstance(blob, bytes) else str(blob)
+    if not password:
+      raise RuntimeError("A credencial segura do importador esta vazia.")
+    return password
 
 
 def chunks(values: list[dict[str, Any]], size: int):

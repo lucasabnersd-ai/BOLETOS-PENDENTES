@@ -3,7 +3,7 @@ setlocal
 title Atualizar Painel de Boletos Pendentes
 
 set "REPO=C:\Users\lucas\OneDrive\Documents\New project 8\boletospendentes"
-set "PYTHON=C:\Users\lucas\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"
+set "PYTHON=C:\Users\lucas\AppData\Local\Programs\Python\Python312\python.exe"
 set "GIT=C:\Program Files\Git\cmd\git.exe"
 set "WORKBOOK=C:\Users\lucas\Grupo S&D\Gabriella Karla Oliveira Milas - FINANCEIRO COMPARTILHADO\LUCAS ABNER ARAUJO\BOLETOS PENDENTES A ASSOCIAR.xlsx"
 

@@ -7,20 +7,28 @@ const META_TABLE = "boleto_pendentes_meta";
 const AUDIT_TABLE = "boleto_pendentes_audit";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: false },
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
   realtime: { params: { eventsPerSecond: 3 } },
 });
 
 const refs = {
+  authGate: document.querySelector("#authGate"),
+  loginForm: document.querySelector("#loginForm"),
+  loginEmail: document.querySelector("#loginEmail"),
+  loginPassword: document.querySelector("#loginPassword"),
+  loginButton: document.querySelector("#loginButton"),
+  loginError: document.querySelector("#loginError"),
+  userDisplayName: document.querySelector("#userDisplayName"),
+  userRole: document.querySelector("#userRole"),
+  logoutButton: document.querySelector("#logoutButton"),
   apiStatus: document.querySelector("#apiStatus"),
   syncStatus: document.querySelector("#syncStatus"),
   rowStatus: document.querySelector("#rowStatus"),
   filtersForm: document.querySelector("#filtersForm"),
-  operatorName: document.querySelector("#operatorName"),
   refreshButton: document.querySelector("#refreshButton"),
   clearButton: document.querySelector("#clearButton"),
   exportButton: document.querySelector("#exportButton"),
-  groupBySelect: document.querySelector("#groupBySelect"),
+  treatedFilter: document.querySelector("#treatedFilter"),
   fonteFilter: document.querySelector("#fonteFilter"),
   origemFilter: document.querySelector("#origemFilter"),
   prioridadeFilter: document.querySelector("#prioridadeFilter"),
@@ -64,7 +72,11 @@ const state = {
   meta: null,
   treatments: new Map(),
   loadedAt: null,
-  collapsedGroups: new Set(),
+  session: null,
+  user: null,
+  role: "standard",
+  realtimeChannel: null,
+  refreshTimer: null,
 };
 
 init();
@@ -72,16 +84,25 @@ init();
 async function init() {
   bindEvents();
   renderEmptySelects();
-  await refreshAll();
-  startRealtime();
-  setInterval(refreshAllQuietly, 60000);
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    showLogin("Nao foi possivel verificar a sessao.");
+    return;
+  }
+  if (data.session) {
+    await activateSession(data.session);
+  } else {
+    showLogin();
+  }
+
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_OUT" || !session) queueMicrotask(() => deactivateSession());
+  });
 }
 
 function bindEvents() {
-  refs.operatorName.value = localStorage.getItem("boletos_operator_name") || "";
-  refs.operatorName.addEventListener("input", () => {
-    localStorage.setItem("boletos_operator_name", refs.operatorName.value.trim());
-  });
+  refs.loginForm.addEventListener("submit", handleLogin);
+  refs.logoutButton.addEventListener("click", handleLogout);
 
   refs.filtersForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -118,6 +139,94 @@ function bindEvents() {
   refs.treatmentCancelButton.addEventListener("click", closeTreatmentDialog);
   refs.treatmentViewCloseButton.addEventListener("click", () => refs.treatmentViewDialog.close());
   enableHorizontalDrag(refs.tableWrap);
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  refs.loginError.hidden = true;
+  refs.loginButton.disabled = true;
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: refs.loginEmail.value.trim(),
+      password: refs.loginPassword.value,
+    });
+    if (error) throw error;
+    refs.loginPassword.value = "";
+    await activateSession(data.session);
+  } catch (error) {
+    showLogin("E-mail ou senha invalidos.");
+  } finally {
+    refs.loginButton.disabled = false;
+  }
+}
+
+async function handleLogout() {
+  refs.logoutButton.disabled = true;
+  try {
+    await supabase.auth.signOut();
+  } finally {
+    refs.logoutButton.disabled = false;
+    deactivateSession();
+  }
+}
+
+async function activateSession(session) {
+  if (!session?.user) {
+    showLogin();
+    return;
+  }
+  state.session = session;
+  state.user = session.user;
+  state.role = session.user.app_metadata?.app_role === "admin" ? "admin" : "standard";
+
+  const displayName = authenticatedDisplayName();
+  refs.userDisplayName.textContent = displayName;
+  refs.userRole.textContent = state.role === "admin" ? "Administrador" : "Acesso padrao";
+  refs.loginError.hidden = true;
+  document.body.classList.remove("auth-pending");
+  document.body.classList.add("is-authenticated");
+
+  await refreshAll();
+  startRealtime();
+  clearInterval(state.refreshTimer);
+  state.refreshTimer = setInterval(refreshAllQuietly, 60000);
+}
+
+function deactivateSession() {
+  state.session = null;
+  state.user = null;
+  state.role = "standard";
+  state.allRows = [];
+  state.rows = [];
+  state.treatments = new Map();
+  clearInterval(state.refreshTimer);
+  state.refreshTimer = null;
+  if (state.realtimeChannel) {
+    supabase.removeChannel(state.realtimeChannel);
+    state.realtimeChannel = null;
+  }
+  showLogin();
+}
+
+function showLogin(message = "") {
+  document.body.classList.remove("is-authenticated");
+  document.body.classList.remove("auth-pending");
+  refs.loginError.textContent = message;
+  refs.loginError.hidden = !message;
+  refs.loginEmail.focus();
+}
+
+function authenticatedDisplayName() {
+  return String(state.user?.app_metadata?.display_name || state.user?.email || "Usuario").trim();
+}
+
+function authenticatedAuditIdentity() {
+  return {
+    changed_by: authenticatedDisplayName(),
+    changed_by_user_id: state.user?.id || null,
+    changed_by_email: state.user?.email || null,
+    changed_by_role: state.role,
+  };
 }
 
 function handleDueQuickFilter(event) {
@@ -180,6 +289,7 @@ function formatInputDate(date) {
 }
 
 async function refreshAll() {
+  if (!state.session) return;
   await Promise.all([loadRows(), loadMeta(), loadTreatments()]);
   applyFilters();
   refs.apiStatus.textContent = "Supabase online";
@@ -187,6 +297,7 @@ async function refreshAll() {
 }
 
 async function refreshAllQuietly() {
+  if (!state.session) return;
   try {
     await refreshAll();
   } catch (error) {
@@ -271,7 +382,8 @@ function setApiOffline(error) {
 }
 
 function startRealtime() {
-  supabase
+  if (state.realtimeChannel) supabase.removeChannel(state.realtimeChannel);
+  state.realtimeChannel = supabase
     .channel("boleto-pendentes-live")
     .on("postgres_changes", { event: "*", schema: "public", table: ITEMS_TABLE }, () => {
       refreshAllQuietly();
@@ -332,13 +444,12 @@ function applyFilters() {
     origem: String(form.get("origem") || ""),
     prioridade: String(form.get("prioridade") || ""),
     situacaoAssociacao: String(form.get("situacao_associacao") || ""),
+    treatedStatus: String(form.get("treated_status") || ""),
     minValue: parseCurrency(form.get("min_value")),
     maxValue: parseCurrency(form.get("max_value")),
     startDate: normalizeDate(form.get("start_date")),
     endDate: normalizeDate(form.get("end_date")),
-    pendingOnly: Boolean(form.get("pending_only")),
     sourceScope: String(form.get("source_scope") || "all"),
-    groupBy: String(form.get("group_by") || ""),
   };
   state.filters = filters;
   state.rows = state.allRows.filter((row) => rowMatches(row, filters));
@@ -367,7 +478,7 @@ function rowMatches(row, filters) {
   if (filters.origem && filters.origem !== (row.origem || "")) return false;
   if (filters.prioridade && filters.prioridade !== (row.prioridade || "")) return false;
   if (filters.situacaoAssociacao && filters.situacaoAssociacao !== (row.situacao_associacao || "")) return false;
-  if (filters.pendingOnly && normalizeText(row.tratado_pendente) !== "pendente") return false;
+  if (filters.treatedStatus && normalizeText(filters.treatedStatus) !== normalizeText(row.tratado_pendente)) return false;
   if (filters.sourceScope === "dda" && normalizeText(row.dda_itau) !== "sim") return false;
   if (filters.sourceScope === "central" && sourceName(row) !== "CENTRAL DE NOTAS") return false;
   const value = Number(row.valor || 0);
@@ -436,75 +547,7 @@ function renderRows() {
     refs.rowsBody.innerHTML = '<tr><td colspan="14" class="empty">Nenhum boleto encontrado para os filtros atuais.</td></tr>';
     return;
   }
-  refs.rowsBody.innerHTML = renderGroupedRows();
-}
-
-function renderGroupedRows() {
-  const groupByField = state.filters.groupBy || "";
-  if (!groupByField) return state.rows.map(renderRow).join("");
-
-  const groups = groupRowsForTable(state.rows, groupByField);
-  return groups.map((group) => {
-    const isCollapsed = state.collapsedGroups.has(group.key);
-    const subtotal = renderGroupHeader(group, isCollapsed);
-    const children = isCollapsed ? "" : group.rows.map(renderRow).join("");
-    return subtotal + children;
-  }).join("");
-}
-
-function groupRowsForTable(rows, field) {
-  const groups = new Map();
-  rows.forEach((row) => {
-    const rawKey = groupKey(row, field);
-    const key = `${field}:${rawKey}`;
-    if (!groups.has(key)) {
-      groups.set(key, { key, rawKey, label: groupLabel(row, field, rawKey), rows: [] });
-    }
-    groups.get(key).rows.push(row);
-  });
-
-  return [...groups.values()].sort((a, b) => {
-    if (field === "vencimento") return String(a.rawKey).localeCompare(String(b.rawKey), "pt-BR");
-    return b.rows.length - a.rows.length || a.label.localeCompare(b.label, "pt-BR");
-  });
-}
-
-function renderGroupHeader(group, isCollapsed) {
-  const total = sum(group.rows, (row) => Number(row.valor || 0));
-  const pending = count(group.rows, (row) => normalizeText(row.tratado_pendente) === "pendente");
-  const review = count(group.rows, (row) => normalizeText(row.situacao_associacao).includes("revisao"));
-  const maxPriority = count(group.rows, (row) => normalizeText(row.prioridade).includes("maxima"));
-  const encodedKey = escapeAttr(group.key);
-  const weekend = state.filters.groupBy === "vencimento" ? renderWeekendIndicator(group.rawKey) : "";
-  return `
-    <tr class="group-row ${isCollapsed ? "collapsed" : ""}">
-      <td colspan="5">
-        <button class="group-toggle" type="button" data-group-key="${encodedKey}" title="Abrir ou recolher grupo">${isCollapsed ? "+" : "-"}</button>
-        <strong>${escapeHtml(group.label)}</strong>${weekend}
-      </td>
-      <td class="num">${group.rows.length}</td>
-      <td class="num group-total">${formatCurrency(total)}</td>
-      <td colspan="4">Pendentes: <strong>${pending}</strong> | Revisao: <strong>${review}</strong> | Prioridade maxima: <strong>${maxPriority}</strong></td>
-      <td colspan="3">Subtotal do grupo</td>
-    </tr>
-  `;
-}
-
-function groupKey(row, field) {
-  if (field === "vencimento") return row.vencimento || "Sem vencimento";
-  if (field === "fonte") return sourceName(row) || "Sem fonte";
-  return row[field] || "Sem valor";
-}
-
-function groupLabel(row, field, rawKey) {
-  if (field === "vencimento") return rawKey === "Sem vencimento" ? rawKey : `Vencimento ${formatDate(rawKey)}`;
-  const labels = {
-    origem: "Origem",
-    fonte: "Fonte",
-    prioridade: "Prioridade",
-    situacao_associacao: "Associacao",
-  };
-  return `${labels[field] || "Grupo"}: ${rawKey || "Sem valor"}`;
+  refs.rowsBody.innerHTML = state.rows.map(renderRow).join("");
 }
 
 function renderRow(row) {
@@ -513,7 +556,7 @@ function renderRow(row) {
     <tr data-id="${escapeHtml(row.id)}">
       <td class="status-column treatment-cell">${renderSelect(row, "tratado_pendente", ["PENDENTE", "TRATADO", "EM ANALISE", "CANCELADO"])}</td>
       <td class="last-change-cell">
-        <strong>${escapeHtml(row.last_changed_by || "Sistema")}</strong>
+        <strong>Por: ${escapeHtml(row.last_changed_by || "Sistema")}</strong>
         <span>${formatDateTime(row.last_changed_at || row.updated_at)}</span>
       </td>
       <td class="treatment-entry-cell">${renderTreatmentBox(row)}</td>
@@ -698,17 +741,6 @@ async function handleTableClick(event) {
     await copyRowCode(copyButton);
     return;
   }
-
-  const button = event.target.closest(".group-toggle");
-  if (!button) return;
-  const key = button.dataset.groupKey;
-  if (!key) return;
-  if (state.collapsedGroups.has(key)) {
-    state.collapsedGroups.delete(key);
-  } else {
-    state.collapsedGroups.add(key);
-  }
-  renderRows();
 }
 
 function openTreatmentView(button) {
@@ -766,7 +798,7 @@ async function saveTreatment(event) {
   const changedAt = new Date().toISOString();
   refs.treatmentSaveButton.disabled = true;
   try {
-    const payload = { field: "tratativa", value, changed_by: changedBy, changed_at: changedAt, source: "painel_web" };
+    const payload = { field: "tratativa", value, ...authenticatedAuditIdentity(), changed_at: changedAt, source: "painel_web" };
     const { error: auditError } = await supabase.from(AUDIT_TABLE).insert({
       item_id: rowId,
       field_name: "tratativa",
@@ -914,7 +946,7 @@ async function updateRowField(input) {
     if (error) throw error;
     Object.assign(row, data);
     input.dataset.savedValue = input.value;
-    await recordAudit(id, "painel_update", { field, value, changed_by: changedBy, changed_at: changedAt, source: "painel_web" }, previous);
+    await recordAudit(id, "painel_update", { field, value, ...authenticatedAuditIdentity(), changed_at: changedAt, source: "painel_web" }, previous);
     toast("Alteracao salva.");
     applyFilters();
   } catch (error) {
@@ -934,8 +966,7 @@ async function recordAudit(itemId, action, payload, oldValue = null) {
 }
 
 function currentOperatorName() {
-  const value = refs.operatorName.value.trim() || localStorage.getItem("boletos_operator_name") || "";
-  return value.trim() || "Nao informado";
+  return authenticatedDisplayName();
 }
 
 function activateTab(tab) {
