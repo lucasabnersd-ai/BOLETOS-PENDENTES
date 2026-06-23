@@ -122,6 +122,125 @@ using (
 
 alter table public.boleto_pendentes_audit enable row level security;
 
+create or replace function boletos_private.enforce_boleto_item_actor()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_user_id uuid := auth.uid();
+  v_database_email text;
+  v_database_role text;
+  v_can_sync_boleto boolean;
+begin
+  if v_user_id is null then
+    return new;
+  end if;
+
+  select
+    lower(btrim(coalesce(users.email, ''))),
+    coalesce(users.raw_app_meta_data ->> 'app_role', 'standard'),
+    coalesce((users.raw_app_meta_data ->> 'can_sync_boleto')::boolean, false)
+  into v_database_email, v_database_role, v_can_sync_boleto
+  from auth.users as users
+  where users.id = v_user_id;
+
+  if coalesce(v_database_role, '') <> 'admin'
+     and coalesce(v_can_sync_boleto, false) is not true
+     and (
+       to_jsonb(new)
+         - 'tratado_pendente'
+         - 'last_changed_by'
+         - 'last_changed_at'
+         - 'updated_at'
+       is distinct from
+       to_jsonb(old)
+         - 'tratado_pendente'
+         - 'last_changed_by'
+         - 'last_changed_at'
+         - 'updated_at'
+     ) then
+    raise exception 'Somente administrador ou conta tecnica pode alterar campos protegidos dos boletos.'
+      using errcode = '42501';
+  end if;
+
+  if old.tratado_pendente is distinct from new.tratado_pendente
+     or old.last_changed_by is distinct from new.last_changed_by
+     or old.last_changed_at is distinct from new.last_changed_at then
+    new.last_changed_by := coalesce(nullif(v_database_email, ''), 'Sistema');
+    new.last_changed_at := statement_timestamp();
+  end if;
+
+  return new;
+end;
+$function$;
+
+revoke all on function boletos_private.enforce_boleto_item_actor() from public, anon, authenticated;
+
+drop trigger if exists enforce_boleto_item_actor on public.boleto_pendentes_items;
+
+create trigger enforce_boleto_item_actor
+before update on public.boleto_pendentes_items
+for each row
+execute function boletos_private.enforce_boleto_item_actor();
+
+create or replace function boletos_private.enforce_boleto_audit_actor()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_user_id uuid := auth.uid();
+  v_database_email text;
+  v_database_role text;
+  v_new_value jsonb;
+  v_payload jsonb;
+begin
+  if v_user_id is null or new.field_name = 'tratativa_exclusao' then
+    return new;
+  end if;
+
+  select
+    lower(btrim(coalesce(users.email, ''))),
+    coalesce(users.raw_app_meta_data ->> 'app_role', 'standard')
+  into v_database_email, v_database_role
+  from auth.users as users
+  where users.id = v_user_id;
+
+  v_new_value := boletos_private.try_parse_jsonb(new.new_value);
+  if jsonb_typeof(v_new_value) is distinct from 'object' then
+    return new;
+  end if;
+
+  v_payload := v_new_value -> 'payload';
+  if jsonb_typeof(v_payload) is distinct from 'object' then
+    v_payload := '{}'::jsonb;
+  end if;
+
+  v_payload := v_payload || jsonb_build_object(
+    'changed_by', coalesce(nullif(v_database_email, ''), 'Sistema'),
+    'changed_by_user_id', v_user_id,
+    'changed_by_email', coalesce(nullif(v_database_email, ''), null),
+    'changed_by_role', coalesce(nullif(v_database_role, ''), 'standard'),
+    'changed_at', to_jsonb(timezone('utc', statement_timestamp()))
+  );
+
+  new.new_value := (v_new_value || jsonb_build_object('payload', v_payload))::text;
+  return new;
+end;
+$function$;
+
+revoke all on function boletos_private.enforce_boleto_audit_actor() from public, anon, authenticated;
+
+drop trigger if exists enforce_boleto_audit_actor on public.boleto_pendentes_audit;
+
+create trigger enforce_boleto_audit_actor
+before insert on public.boleto_pendentes_audit
+for each row
+execute function boletos_private.enforce_boleto_audit_actor();
+
 -- Deletion is available only through the checked RPC below. SELECT/INSERT
 -- permissions and their existing RLS policies are intentionally unchanged.
 revoke delete on table public.boleto_pendentes_audit from public, anon, authenticated;

@@ -63,6 +63,13 @@ def main() -> int:
     )
     parser.add_argument("--delete-missing", action="store_true", help="Remove da base online boletos que nao estao mais na planilha.")
     parser.add_argument("--no-delete-missing", dest="delete_missing", action="store_false")
+    parser.add_argument(
+      "--max-delete-ratio",
+      type=float,
+      default=float(os.environ.get("BOLETOS_MAX_DELETE_RATIO", "0.25")),
+      help="Limite de seguranca para remocoes automaticas em massa; use --force-large-delete para confirmar excecoes.",
+    )
+    parser.add_argument("--force-large-delete", action="store_true", help="Permite delecao acima do limite de seguranca.")
     parser.set_defaults(delete_missing=True)
     args = parser.parse_args()
 
@@ -77,7 +84,7 @@ def main() -> int:
     get_access_token()
     upsert_rows(rows)
     if args.delete_missing:
-      delete_missing_rows({row["source_key"] for row in rows})
+      delete_missing_rows({row["source_key"] for row in rows}, max_delete_ratio=args.max_delete_ratio, force=args.force_large_delete)
 
     meta = build_meta(workbook, rows, summary)
     upsert_meta(meta)
@@ -306,13 +313,26 @@ def insert_audit(payload: dict[str, Any]) -> None:
       print(f"Aviso: auditoria nao gravada: {exc}")
 
 
-def delete_missing_rows(current_keys: set[str]) -> None:
+def delete_missing_rows(current_keys: set[str], *, max_delete_ratio: float, force: bool = False) -> None:
     existing = request_json("GET", f"/rest/v1/{ITEMS_TABLE}?select=source_key", None)
-    for item in existing or []:
-      source_key = item.get("source_key")
-      if source_key and source_key not in current_keys:
-        encoded = urllib.parse.quote(str(source_key), safe="")
-        request_json("DELETE", f"/rest/v1/{ITEMS_TABLE}?source_key=eq.{encoded}", None, prefer="return=minimal")
+    existing_items = existing or []
+    missing = [
+      str(item.get("source_key"))
+      for item in existing_items
+      if item.get("source_key") and item.get("source_key") not in current_keys
+    ]
+    existing_count = len(existing_items)
+    max_allowed = max(20, int(existing_count * max(0, min(max_delete_ratio, 1))))
+    if missing and not force and len(missing) > max_allowed:
+      raise RuntimeError(
+        "Delecao automatica bloqueada por seguranca: "
+        f"{len(missing)} de {existing_count} registros seriam removidos. "
+        "Confira a planilha ou execute com --force-large-delete se essa remocao for intencional."
+      )
+
+    for source_key in missing:
+      encoded = urllib.parse.quote(source_key, safe="")
+      request_json("DELETE", f"/rest/v1/{ITEMS_TABLE}?source_key=eq.{encoded}", None, prefer="return=minimal")
 
 
 def request_json(method: str, path: str, payload: Any = None, prefer: str | None = None) -> Any:

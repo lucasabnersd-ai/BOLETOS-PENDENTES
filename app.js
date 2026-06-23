@@ -1074,7 +1074,8 @@ function exportCsv() {
 
 function csvValue(value) {
   const text = String(value ?? "");
-  const safeText = typeof value === "string" && /^[=+\-@]/.test(text) ? `'${text}` : text;
+  const formulaProbe = text.replace(/^[\s\u0000-\u001f]+/, "");
+  const safeText = typeof value === "string" && /^[=+\-@]/.test(formulaProbe) ? `'${text}` : text;
   return `"${safeText.replaceAll('"', '""')}"`;
 }
 

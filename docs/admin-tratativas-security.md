@@ -8,6 +8,7 @@ A migration `20260622205903_admin_roles_delete_tratativa.sql` prepara estas regr
 - a regra e reforcada por trigger em `auth.users` e nao usa `user_metadata`, que pode ser alterado pelo usuario;
 - novas policies permitem `INSERT`/`DELETE` em `boleto_pendentes_items` somente para essa conta tecnica com `can_sync_boleto = true`, preservando o fluxo atual de sincronizacao;
 - `DELETE` direto em `boleto_pendentes_audit` e revogado para `anon` e `authenticated`;
+- triggers no banco bloqueiam alteracoes de campos financeiros por usuarios padrao e sobrescrevem `last_changed_by` e os campos `changed_by_*` da auditoria com a identidade real da sessao autenticada, evitando atribuicao falsa enviada pelo navegador;
 - a RPC `delete_boleto_pendentes_tratativa(p_audit_id text)` aceita somente uma tratativa ativa e exige simultaneamente o e-mail administrativo e o papel `admin` no JWT e no registro `auth.users`;
 - a tratativa sai do historico ativo, mas seu conteudo e a identidade confiavel do administrador ficam preservados em uma entrada `tratativa_exclusao`.
 

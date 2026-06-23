@@ -39,6 +39,13 @@ class StaticSecurityTests(unittest.TestCase):
         self.assertNotIn("Painel de Boletos Pendentes", html)
         self.assertGreaterEqual(html.count("PAINEL DE BOLETOS PENDENTES"), 3)
 
+    def test_csv_formula_guard_handles_leading_whitespace(self) -> None:
+        source = (REPO / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn('formulaProbe = text.replace(/^[\\s\\u0000-\\u001f]+/, "")', source)
+        self.assertIn('typeof value === "string" && /^[=+\\-@]/.test(formulaProbe)', source)
+        self.assertNotIn('/^[=+\\-@]/.test(text)', source)
+
 
 if __name__ == "__main__":
     unittest.main()

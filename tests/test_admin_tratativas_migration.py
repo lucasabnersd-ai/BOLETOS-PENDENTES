@@ -76,6 +76,20 @@ class AdminTratativasMigrationTests(unittest.TestCase):
         self.assertIn("from auth.users as users", self.normalized)
         self.assertIn("errcode = '42501'", self.normalized)
 
+    def test_database_rebinds_browser_supplied_audit_identity(self):
+        self.assertIn("create or replace function boletos_private.enforce_boleto_item_actor()", self.normalized)
+        self.assertIn("create trigger enforce_boleto_item_actor", self.normalized)
+        self.assertIn("to_jsonb(new) - 'tratado_pendente' - 'last_changed_by' - 'last_changed_at' - 'updated_at'", self.normalized)
+        self.assertIn("to_jsonb(old) - 'tratado_pendente' - 'last_changed_by' - 'last_changed_at' - 'updated_at'", self.normalized)
+        self.assertIn("somente administrador ou conta tecnica pode alterar campos protegidos dos boletos", self.normalized)
+        self.assertIn("new.last_changed_by := coalesce(nullif(v_database_email, ''), 'sistema')", self.normalized)
+        self.assertIn("create or replace function boletos_private.enforce_boleto_audit_actor()", self.normalized)
+        self.assertIn("create trigger enforce_boleto_audit_actor", self.normalized)
+        self.assertIn("'changed_by_user_id', v_user_id", self.normalized)
+        self.assertIn("'changed_by_email', coalesce(nullif(v_database_email, ''), null)", self.normalized)
+        self.assertIn("'changed_by_role', coalesce(nullif(v_database_role, ''), 'standard')", self.normalized)
+        self.assertIn("before insert on public.boleto_pendentes_audit", self.normalized)
+
     def test_only_active_treatments_can_be_deleted_and_tombstone_is_kept(self):
         self.assertIn("audit.field_name = 'tratativa'", self.normalized)
         self.assertIn("boletos_private.try_parse_jsonb(audit.new_value) ->> 'action'", self.normalized)
