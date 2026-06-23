@@ -244,6 +244,8 @@ execute function boletos_private.enforce_boleto_audit_actor();
 -- Deletion is available only through the checked RPC below. SELECT/INSERT
 -- permissions and their existing RLS policies are intentionally unchanged.
 revoke delete on table public.boleto_pendentes_audit from public, anon, authenticated;
+revoke update on table public.boleto_pendentes_audit from public, anon, authenticated;
+revoke update on table public.boleto_pendentes_items from anon;
 
 create or replace function boletos_private.delete_boleto_pendentes_tratativa(
   p_audit_id text

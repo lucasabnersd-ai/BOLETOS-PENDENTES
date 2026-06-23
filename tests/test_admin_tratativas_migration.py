@@ -44,6 +44,14 @@ class AdminTratativasMigrationTests(unittest.TestCase):
             "revoke delete on table public.boleto_pendentes_audit from public, anon, authenticated",
             self.normalized,
         )
+        self.assertIn(
+            "revoke update on table public.boleto_pendentes_audit from public, anon, authenticated",
+            self.normalized,
+        )
+        self.assertIn(
+            "revoke update on table public.boleto_pendentes_items from anon",
+            self.normalized,
+        )
         self.assertNotRegex(
             self.normalized,
             r"grant\s+delete\s+on\s+(?:table\s+)?public\.boleto_pendentes_audit",
