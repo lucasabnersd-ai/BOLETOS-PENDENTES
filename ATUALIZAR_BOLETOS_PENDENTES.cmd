@@ -40,7 +40,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-"%GIT%" push origin main
+"%GIT%" push origin HEAD:main
 if errorlevel 1 (
   echo.
   echo Falha ao enviar para o GitHub.
@@ -50,5 +50,5 @@ if errorlevel 1 (
 
 echo.
 echo Atualizacao concluida e publicada.
-echo URL: https://lucasabnersd-ai.github.io/boletospendentes/
+echo URL: https://lucasabnersd-ai.github.io/BOLETOS-PENDENTES/
 pause

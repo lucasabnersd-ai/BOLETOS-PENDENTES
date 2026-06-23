@@ -78,6 +78,8 @@ const state = {
   role: "standard",
   realtimeChannel: null,
   refreshTimer: null,
+  savingRows: new Set(),
+  suppressRealtimeUntil: 0,
 };
 
 init();
@@ -400,6 +402,7 @@ function startRealtime() {
   state.realtimeChannel = supabase
     .channel("boleto-pendentes-live")
     .on("postgres_changes", { event: "*", schema: "public", table: ITEMS_TABLE }, () => {
+      if (Date.now() < state.suppressRealtimeUntil) return;
       refreshAllQuietly();
     })
     .subscribe((status) => {
@@ -593,7 +596,7 @@ function renderSelect(row, field, options) {
   const current = String(row[field] || "");
   const values = [...new Set([current, ...options].filter(Boolean))];
   const statusClass = field === "tratado_pendente" ? ` treatment-select ${treatmentStatusClass(current)}` : "";
-  return `<select class="table-select${statusClass}" data-field="${field}">${values.map((value) => `<option value="${escapeAttr(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}</select>`;
+  return `<select class="table-select${statusClass}" data-field="${field}" data-saved-value="${escapeAttr(current)}">${values.map((value) => `<option value="${escapeAttr(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}</select>`;
 }
 
 function renderTreatmentBox(row) {
@@ -995,6 +998,8 @@ async function updateRowField(input) {
   const row = state.allRows.find((item) => item.id === id);
   if (!row) return;
   const value = input.type === "checkbox" ? input.checked : input.value;
+  if (input.dataset.saving === "1" || state.savingRows.has(id)) return;
+  if (String(value) === String(row[field] || "") && input.dataset.savedValue === String(value)) return;
   const previous = {
     [field]: row[field],
     last_changed_by: row.last_changed_by,
@@ -1002,6 +1007,9 @@ async function updateRowField(input) {
   };
   const changedBy = currentOperatorName();
   const changedAt = new Date().toISOString();
+  state.savingRows.add(id);
+  input.dataset.saving = "1";
+  state.suppressRealtimeUntil = Date.now() + 5000;
   input.disabled = true;
   try {
     const payload = { [field]: value, last_changed_by: changedBy, last_changed_at: changedAt };
@@ -1013,13 +1021,17 @@ async function updateRowField(input) {
       .single();
     if (error) throw error;
     Object.assign(row, data);
-    input.dataset.savedValue = input.value;
+    input.dataset.savedValue = String(input.value);
     await recordAudit(id, "painel_update", { field, value, ...authenticatedAuditIdentity(), changed_at: changedAt, source: "painel_web" }, previous);
     toast("Alteracao salva.");
     applyFilters();
   } catch (error) {
+    input.value = String(previous[field] || "");
+    input.dataset.savedValue = String(previous[field] || "");
     toast(error.message || "Nao foi possivel salvar.");
   } finally {
+    state.savingRows.delete(id);
+    delete input.dataset.saving;
     input.disabled = false;
   }
 }

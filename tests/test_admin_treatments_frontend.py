@@ -29,6 +29,13 @@ class AdminTreatmentsFrontendTests(unittest.TestCase):
     def test_delete_button_has_dedicated_styles(self):
         self.assertIn(".treatment-delete-button", STYLES)
 
+    def test_treated_dropdown_avoids_duplicate_save_and_realtime_rerender(self):
+        self.assertIn('data-saved-value="${escapeAttr(current)}"', APP)
+        self.assertIn("savingRows: new Set()", APP)
+        self.assertIn("suppressRealtimeUntil: 0", APP)
+        self.assertIn('input.dataset.saving === "1"', APP)
+        self.assertIn("Date.now() < state.suppressRealtimeUntil", APP)
+
 
 if __name__ == "__main__":
     unittest.main()

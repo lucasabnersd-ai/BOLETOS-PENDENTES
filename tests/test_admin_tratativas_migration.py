@@ -5,6 +5,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = ROOT / "supabase" / "migrations" / "20260622205903_admin_roles_delete_tratativa.sql"
+SYNC_META_MIGRATION = ROOT / "supabase" / "migrations" / "20260623121500_allow_sync_boleto_meta.sql"
+ADVISOR_HARDENING_MIGRATION = ROOT / "supabase" / "migrations" / "20260623122000_harden_project_security_advisors.sql"
 
 
 class AdminTratativasMigrationTests(unittest.TestCase):
@@ -38,6 +40,22 @@ class AdminTratativasMigrationTests(unittest.TestCase):
             "when lower(btrim(coalesce(email, ''))) = 'lucas.araujo@sdflorestal.com.br' then 'admin'",
             self.normalized,
         )
+
+    def test_daily_sync_can_update_meta_without_admin_role(self):
+        sql = re.sub(r"\s+", " ", SYNC_META_MIGRATION.read_text(encoding="utf-8").lower()).strip()
+        self.assertIn("sync account can insert boleto meta", sql)
+        self.assertIn("sync account can update boleto meta", sql)
+        self.assertIn("for insert", sql)
+        self.assertIn("for update", sql)
+        self.assertIn("can_sync_boleto", sql)
+        self.assertIn("lucas.araujo@sdflorestal.com.br", sql)
+        self.assertNotIn("app_role'::text) = 'admin'", sql)
+
+    def test_project_advisor_hardening_is_recorded(self):
+        sql = re.sub(r"\s+", " ", ADVISOR_HARDENING_MIGRATION.read_text(encoding="utf-8").lower()).strip()
+        self.assertIn("revoke execute on function public.rls_auto_enable() from public, anon, authenticated", sql)
+        self.assertIn("alter function public.se2_email_autorizado() set search_path = ''", sql)
+        self.assertIn("alter function public.se2_touch_atualizado_em() set search_path = ''", sql)
 
     def test_direct_delete_is_revoked(self):
         self.assertIn(
