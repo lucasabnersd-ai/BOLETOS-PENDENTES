@@ -1579,10 +1579,32 @@ body.boletos-mode .last-change-cell span {
   white-space: pre-wrap;
 }
 
-.treatment-history-card small {
-  display: block;
+.treatment-history-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
   margin-top: 8px;
-  text-align: right;
+}
+
+.treatment-history-card .treatment-history-footer small {
+  margin: 0;
+}
+
+.treatment-delete-button {
+  min-height: 30px;
+  border: 1px solid #a73a2b;
+  border-radius: 5px;
+  background: #fff;
+  color: #8f2e22;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.treatment-delete-button:hover:not(:disabled) {
+  background: #8f2e22;
+  color: #fff;
 }
 
 @media (max-width: 1180px) {

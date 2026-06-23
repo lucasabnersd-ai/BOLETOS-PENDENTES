@@ -5,6 +5,7 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_fXWQGDirOvs5xfxZDaSOtg_Jgd7vcbu
 const ITEMS_TABLE = "boleto_pendentes_items";
 const META_TABLE = "boleto_pendentes_meta";
 const AUDIT_TABLE = "boleto_pendentes_audit";
+const ADMIN_EMAIL = "lucas.abnersd@gmail.com";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
@@ -138,6 +139,7 @@ function bindEvents() {
   refs.treatmentCloseButton.addEventListener("click", closeTreatmentDialog);
   refs.treatmentCancelButton.addEventListener("click", closeTreatmentDialog);
   refs.treatmentViewCloseButton.addEventListener("click", () => refs.treatmentViewDialog.close());
+  refs.treatmentViewList.addEventListener("click", handleTreatmentHistoryClick);
   enableHorizontalDrag(refs.tableWrap);
 }
 
@@ -180,11 +182,11 @@ async function activateSession(session) {
   }
   state.session = session;
   state.user = session.user;
-  state.role = session.user.app_metadata?.app_role === "admin" ? "admin" : "standard";
+  state.role = isAuthorizedAdmin(session.user) ? "admin" : "standard";
 
   const displayName = authenticatedDisplayName();
   refs.userDisplayName.textContent = displayName;
-  refs.userRole.textContent = state.role === "admin" ? "Administrador" : "Acesso padrao";
+  refs.userRole.textContent = state.role === "admin" ? "Administrador" : "Acesso padrão";
   refs.loginError.hidden = true;
   document.body.classList.remove("auth-pending");
   document.body.classList.add("is-authenticated");
@@ -221,6 +223,14 @@ function showLogin(message = "") {
 
 function authenticatedDisplayName() {
   return String(state.user?.app_metadata?.display_name || state.user?.email || "Usuario").trim();
+}
+
+function normalizedEmail(user) {
+  return String(user?.email || "").trim().toLowerCase();
+}
+
+function isAuthorizedAdmin(user) {
+  return user?.app_metadata?.app_role === "admin" && normalizedEmail(user) === ADMIN_EMAIL;
 }
 
 function authenticatedAuditIdentity() {
@@ -343,7 +353,7 @@ async function loadMeta() {
 async function loadTreatments() {
   const { data, error } = await supabase
     .from(AUDIT_TABLE)
-    .select("item_id,new_value,created_at")
+    .select("id,item_id,new_value,created_at")
     .eq("field_name", "tratativa")
     .order("created_at", { ascending: false })
     .limit(5000);
@@ -359,6 +369,7 @@ async function loadTreatments() {
     if (!value) return;
     const history = treatments.get(itemId) || [];
     history.push({
+      auditId: String(item.id || ""),
       value: String(payload.value || ""),
       changedBy: String(payload.changed_by || "Nao informado"),
       changedAt: payload.changed_at || item.created_at,
@@ -748,21 +759,75 @@ async function handleTableClick(event) {
 
 function openTreatmentView(button) {
   const rowId = button.closest("tr[data-id]")?.dataset.id;
+  renderTreatmentHistory(rowId);
+}
+
+function renderTreatmentHistory(rowId) {
   const row = state.allRows.find((item) => item.id === rowId);
   const history = treatmentHistory(rowId);
   if (!row || !history.length) return;
+  refs.treatmentViewDialog.dataset.rowId = rowId;
   refs.treatmentViewContext.textContent = `${row.fornecedor || "Fornecedor nao informado"} | ${formatCurrency(row.valor)} | ${formatDate(row.vencimento)}`;
   refs.treatmentViewList.innerHTML = history.map((treatment, index) => `
-    <article class="treatment-history-card">
+    <article class="treatment-history-card" data-audit-id="${escapeAttr(treatment.auditId || "")}">
       <header>
         <strong>${escapeHtml(treatment.changedBy || "Nao informado")}</strong>
         <span>${escapeHtml(formatDateTime(treatment.changedAt))}</span>
       </header>
       <p>${escapeHtml(treatment.value || "")}</p>
-      <small>Tratativa ${history.length - index}</small>
+      <div class="treatment-history-footer">
+        <small>Tratativa ${history.length - index}</small>
+        ${state.role === "admin" && treatment.auditId ? '<button type="button" class="treatment-delete-button" data-action="delete-treatment">Excluir</button>' : ""}
+      </div>
     </article>
   `).join("");
-  refs.treatmentViewDialog.showModal();
+  if (!refs.treatmentViewDialog.open) refs.treatmentViewDialog.showModal();
+}
+
+async function handleTreatmentHistoryClick(event) {
+  const button = event.target.closest('[data-action="delete-treatment"]');
+  if (!button) return;
+  if (state.role !== "admin" || !isAuthorizedAdmin(state.user)) {
+    toast("Somente o administrador pode excluir tratativas.");
+    return;
+  }
+
+  const card = button.closest("[data-audit-id]");
+  const auditId = card?.dataset.auditId;
+  const rowId = refs.treatmentViewDialog.dataset.rowId;
+  if (!auditId || !rowId) {
+    toast("Nao foi possivel identificar a tratativa.");
+    return;
+  }
+
+  if (!window.confirm("Excluir esta tratativa? Esta acao nao pode ser desfeita.")) return;
+
+  button.disabled = true;
+  try {
+    const { data: deleted, error } = await supabase.rpc("delete_boleto_pendentes_tratativa", { p_audit_id: auditId });
+    if (error) throw error;
+    if (deleted !== true) throw new Error("Tratativa nao encontrada ou ja excluida.");
+
+    await loadTreatments();
+    if (treatmentHistory(rowId).some((treatment) => treatment.auditId === auditId)) {
+      throw new Error("A exclusao nao foi confirmada pelo servidor.");
+    }
+
+    applyFilters();
+    if (treatmentHistory(rowId).length) {
+      renderTreatmentHistory(rowId);
+    } else {
+      refs.treatmentViewDialog.close();
+      refs.treatmentViewDialog.dataset.rowId = "";
+    }
+    toast("Tratativa excluida.");
+  } catch (error) {
+    const message = String(error?.code || "") === "42501"
+      ? "Exclusao negada: somente o administrador autorizado pode excluir tratativas."
+      : error?.message || "Nao foi possivel excluir a tratativa.";
+    toast(message);
+    button.disabled = false;
+  }
 }
 
 function openTreatmentDialog(button) {
@@ -810,7 +875,7 @@ async function saveTreatment(event) {
     });
     if (auditError) throw auditError;
 
-    state.treatments.set(rowId, [{ value, changedBy, changedAt }, ...history]);
+    await loadTreatments();
 
     const { data, error } = await supabase
       .from(ITEMS_TABLE)
