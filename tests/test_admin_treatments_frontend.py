@@ -4,6 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = (ROOT / "app.js").read_text(encoding="utf-8")
+INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 STYLES = (ROOT / "styles.css").read_text(encoding="utf-8")
 
 
@@ -35,6 +36,13 @@ class AdminTreatmentsFrontendTests(unittest.TestCase):
         self.assertIn("suppressRealtimeUntil: 0", APP)
         self.assertIn('input.dataset.saving === "1"', APP)
         self.assertIn("Date.now() < state.suppressRealtimeUntil", APP)
+
+    def test_boletos_tab_is_first_and_default_after_login(self):
+        self.assertLess(INDEX.index('data-tab="boletos"'), INDEX.index('data-tab="overview"'))
+        self.assertIn('<button class="tab-button active" type="button" data-tab="boletos">Boletos</button>', INDEX)
+        self.assertIn('<section id="boletosTab" class="tab-panel active">', INDEX)
+        self.assertIn('<section id="overviewTab" class="tab-panel">', INDEX)
+        self.assertIn('activateTab("boletos");', APP)
 
 
 if __name__ == "__main__":

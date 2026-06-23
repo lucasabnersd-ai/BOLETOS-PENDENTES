@@ -192,6 +192,7 @@ async function activateSession(session) {
   refs.loginError.hidden = true;
   document.body.classList.remove("auth-pending");
   document.body.classList.add("is-authenticated");
+  activateTab("boletos");
 
   await refreshAll();
   startRealtime();

@@ -6,7 +6,7 @@
     <title>PAINEL DE BOLETOS PENDENTES</title>
     <link rel="stylesheet" href="./styles.css?v=20260622-2" />
   </head>
-  <body class="auth-pending overview-mode">
+  <body class="auth-pending boletos-mode">
     <section id="authGate" class="auth-gate" aria-labelledby="loginTitle">
       <div class="auth-panel">
         <div class="auth-brand">
@@ -137,12 +137,12 @@
 
       <section class="workspace">
         <nav class="tabs" aria-label="Abas do painel">
-          <button class="tab-button active" type="button" data-tab="overview">Visao geral</button>
-          <button class="tab-button" type="button" data-tab="boletos">Boletos</button>
+          <button class="tab-button active" type="button" data-tab="boletos">Boletos</button>
+          <button class="tab-button" type="button" data-tab="overview">Visao geral</button>
           <button class="tab-button" type="button" data-tab="modelos">Modelos</button>
         </nav>
 
-        <section id="overviewTab" class="tab-panel active">
+        <section id="overviewTab" class="tab-panel">
           <div id="kpiGrid" class="kpi-grid"></div>
           <div class="split-grid">
             <section class="panel">
@@ -162,7 +162,7 @@
           </div>
         </section>
 
-        <section id="boletosTab" class="tab-panel">
+        <section id="boletosTab" class="tab-panel active">
           <section class="results-panel">
             <div class="results-header">
               <div>
@@ -246,6 +246,6 @@
     </dialog>
 
     <div id="toast" class="toast" hidden></div>
-    <script type="module" src="./app.js?v=20260622-2"></script>
+    <script type="module" src="./app.js?v=20260623-1"></script>
   </body>
 </html>
