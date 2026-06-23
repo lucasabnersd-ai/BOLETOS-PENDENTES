@@ -44,6 +44,13 @@ class AdminTreatmentsFrontendTests(unittest.TestCase):
         self.assertIn('<section id="overviewTab" class="tab-panel">', INDEX)
         self.assertIn('activateTab("boletos");', APP)
 
+    def test_boletos_table_header_stays_fixed_while_scrolling(self):
+        self.assertIn('styles.css?v=20260623-2', INDEX)
+        self.assertIn("body.boletos-mode .boletos-table thead", STYLES)
+        self.assertIn("position: sticky", STYLES)
+        self.assertIn("top: 0", STYLES)
+        self.assertIn("overflow: visible", STYLES)
+
 
 if __name__ == "__main__":
     unittest.main()

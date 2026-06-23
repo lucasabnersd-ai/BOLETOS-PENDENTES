@@ -921,6 +921,7 @@ body.boletos-mode .table-wrap {
   max-height: calc(100vh - 288px);
   border: 1px solid #cbd8d4;
   background: #fff;
+  position: relative;
 }
 
 body.boletos-mode .results-panel {
@@ -931,7 +932,14 @@ body.boletos-mode table {
   min-width: 1880px;
   border-collapse: collapse;
   border-radius: 0;
+  overflow: visible;
   box-shadow: none;
+}
+
+body.boletos-mode .boletos-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 30;
 }
 
 body.boletos-mode th,
@@ -943,11 +951,14 @@ body.boletos-mode td {
 }
 
 body.boletos-mode th {
+  position: sticky;
+  top: 0;
   z-index: 4;
   background: #e7eeea;
   color: var(--sd-primary);
   border-bottom: 2px solid #9fb3ad;
   font-size: 9.8px;
+  box-shadow: 0 2px 0 #9fb3ad, 0 4px 10px rgba(10, 35, 31, 0.12);
 }
 
 body.boletos-mode tbody tr:nth-child(even) td {
