@@ -314,8 +314,7 @@ def insert_audit(payload: dict[str, Any]) -> None:
 
 
 def delete_missing_rows(current_keys: set[str], *, max_delete_ratio: float, force: bool = False) -> None:
-    existing = request_json("GET", f"/rest/v1/{ITEMS_TABLE}?select=source_key", None)
-    existing_items = existing or []
+    existing_items = fetch_all_source_keys()
     missing = [
       str(item.get("source_key"))
       for item in existing_items
@@ -333,6 +332,24 @@ def delete_missing_rows(current_keys: set[str], *, max_delete_ratio: float, forc
     for source_key in missing:
       encoded = urllib.parse.quote(source_key, safe="")
       request_json("DELETE", f"/rest/v1/{ITEMS_TABLE}?source_key=eq.{encoded}", None, prefer="return=minimal")
+
+
+def fetch_all_source_keys() -> list[dict[str, Any]]:
+    """Reads every item key, not only the first PostgREST result page."""
+    page_size = 1000
+    offset = 0
+    items: list[dict[str, Any]] = []
+
+    while True:
+      page = request_json(
+        "GET",
+        f"/rest/v1/{ITEMS_TABLE}?select=source_key&order=source_key&limit={page_size}&offset={offset}",
+        None,
+      ) or []
+      items.extend(page)
+      if len(page) < page_size:
+        return items
+      offset += page_size
 
 
 def request_json(method: str, path: str, payload: Any = None, prefer: str | None = None) -> Any:
