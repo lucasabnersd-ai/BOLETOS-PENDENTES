@@ -1682,3 +1682,6 @@ body.boletos-mode .last-change-cell span {
     grid-column: auto;
   }
 }
+
+/* Perf: arrasto/rolagem mais suaves na tabela de boletos */
+.table-wrap { will-change: scroll-position; overscroll-behavior-x: contain; }

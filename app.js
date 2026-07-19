@@ -33,7 +33,6 @@ const refs = {
   fonteFilter: document.querySelector("#fonteFilter"),
   origemFilter: document.querySelector("#origemFilter"),
   prioridadeFilter: document.querySelector("#prioridadeFilter"),
-  associacaoFilter: document.querySelector("#associacaoFilter"),
   dueQuickFilters: document.querySelector("#dueQuickFilters"),
   sourceScopeFilters: document.querySelector("#sourceScopeFilters"),
   sourceScope: document.querySelector("#sourceScope"),
@@ -418,7 +417,6 @@ function renderEmptySelects() {
   fillSelect(refs.fonteFilter, [], "Todas as fontes");
   fillSelect(refs.origemFilter, [], "Todas as origens");
   fillSelect(refs.prioridadeFilter, [], "Todas as prioridades");
-  fillSelect(refs.associacaoFilter, [], "Todas as associacoes");
 }
 
 function populateFilterOptions() {
@@ -426,16 +424,13 @@ function populateFilterOptions() {
     fonte: refs.fonteFilter.value,
     origem: refs.origemFilter.value,
     prioridade: refs.prioridadeFilter.value,
-    associacao: refs.associacaoFilter.value,
   };
   fillSelect(refs.fonteFilter, uniqueValues(state.allRows, sourceName), "Todas as fontes");
   fillSelect(refs.origemFilter, uniqueValues(state.allRows, (row) => row.origem), "Todas as origens");
   fillSelect(refs.prioridadeFilter, uniqueValues(state.allRows, (row) => row.prioridade), "Todas as prioridades");
-  fillSelect(refs.associacaoFilter, uniqueValues(state.allRows, (row) => row.situacao_associacao), "Todas as associacoes");
   refs.fonteFilter.value = current.fonte;
   refs.origemFilter.value = current.origem;
   refs.prioridadeFilter.value = current.prioridade;
-  refs.associacaoFilter.value = current.associacao;
 }
 
 function fillSelect(select, values, label) {
@@ -461,7 +456,6 @@ function applyFilters() {
     fonte: String(form.get("fonte") || ""),
     origem: String(form.get("origem") || ""),
     prioridade: String(form.get("prioridade") || ""),
-    situacaoAssociacao: String(form.get("situacao_associacao") || ""),
     treatedStatus: String(form.get("treated_status") || ""),
     minValue: parseCurrency(form.get("min_value")),
     maxValue: parseCurrency(form.get("max_value")),
@@ -495,7 +489,6 @@ function rowMatches(row, filters) {
   if (filters.fonte && filters.fonte !== sourceName(row)) return false;
   if (filters.origem && filters.origem !== (row.origem || "")) return false;
   if (filters.prioridade && filters.prioridade !== (row.prioridade || "")) return false;
-  if (filters.situacaoAssociacao && filters.situacaoAssociacao !== (row.situacao_associacao || "")) return false;
   if (filters.treatedStatus && normalizeText(filters.treatedStatus) !== normalizeText(row.tratado_pendente)) return false;
   if (filters.sourceScope === "dda" && normalizeText(row.dda_itau) !== "sim") return false;
   if (filters.sourceScope === "central" && sourceName(row) !== "CENTRAL DE NOTAS") return false;
@@ -713,7 +706,16 @@ function renderModels() {
 
 function renderMeta() {
   const meta = state.meta || {};
-  const updatedAt = meta.generated_at || meta.finished_at || meta.updated_at || state.loadedAt?.toISOString();
+  let ultimaMudanca = null;
+  for (const row of state.allRows || []) {
+    const ts = row.last_changed_at || row.updated_at;
+    if (ts && (!ultimaMudanca || String(ts) > String(ultimaMudanca))) ultimaMudanca = ts;
+  }
+  const syncAt = meta.generated_at || meta.finished_at || meta.updated_at || null;
+  const candidatosData = [syncAt, ultimaMudanca].filter(Boolean);
+  const updatedAt = candidatosData.length
+    ? candidatosData.reduce((a, b) => (new Date(a) >= new Date(b) ? a : b))
+    : state.loadedAt?.toISOString();
   refs.syncStatus.textContent = updatedAt ? `Atualizado ${formatDateTime(updatedAt)}` : "Atualizacao nao informada";
   refs.syncStatus.classList.toggle("muted", !updatedAt);
 
@@ -952,6 +954,8 @@ function enableHorizontalDrag(scroller) {
   let startY = 0;
   let startScrollLeft = 0;
   let dragging = false;
+  let rafId = null;
+  let pendingLeft = 0;
 
   scroller.addEventListener("pointerdown", (event) => {
     if (event.button !== 0 || event.target.closest("button, input, select, textarea, a, label")) return;
@@ -970,13 +974,20 @@ function enableHorizontalDrag(scroller) {
     if (!dragging && (Math.abs(deltaX) < 5 || Math.abs(deltaX) <= Math.abs(deltaY))) return;
     dragging = true;
     scroller.classList.add("is-dragging");
-    scroller.scrollLeft = startScrollLeft - deltaX;
+    pendingLeft = startScrollLeft - deltaX;
+    if (rafId === null) {
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        scroller.scrollLeft = pendingLeft;
+      });
+    }
     event.preventDefault();
   });
 
   const stopDragging = (event) => {
     if (pointerId !== event.pointerId) return;
     if (scroller.hasPointerCapture?.(pointerId)) scroller.releasePointerCapture(pointerId);
+    if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
     pointerId = null;
     dragging = false;
     scroller.classList.remove("is-dragging");
