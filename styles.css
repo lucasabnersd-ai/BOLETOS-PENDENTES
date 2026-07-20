@@ -1729,5 +1729,25 @@ body.boletos-mode .last-change-cell span {
   }
 }
 
+/* Legibilidade: padrão Calibri 11 para as tabelas operacionais. */
+body.boletos-mode th,
+body.boletos-mode td,
+body.cruzamento-mode th,
+body.cruzamento-mode td {
+  font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif;
+}
+
+body.boletos-mode td,
+body.cruzamento-mode td {
+  font-size: 11pt;
+  line-height: 1.3;
+}
+
+body.boletos-mode th,
+body.cruzamento-mode th {
+  font-size: 10pt;
+  line-height: 1.2;
+}
+
 /* Perf: arrasto/rolagem mais suaves na tabela de boletos */
 .table-wrap { will-change: scroll-position; overscroll-behavior-x: contain; }
