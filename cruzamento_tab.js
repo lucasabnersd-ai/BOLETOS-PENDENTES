@@ -1,4 +1,4 @@
-const supabase = window.boletoSupabase;
+let supabase = null;
 
 const fmtBRL = (value) =>
   value == null ? "-" : Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -59,13 +59,10 @@ function render() {
 
 async function loadCruzamento() {
   const meta = document.querySelector("#cruzamentoMeta");
+  supabase ||= window.boletoSupabase;
   if (!supabase) {
-    if (meta) meta.textContent = "O painel ainda está iniciando. Atualize a página.";
-    return;
-  }
-  const { data: sessionData } = await supabase.auth.getSession();
-  if (!sessionData.session) {
-    if (meta) meta.textContent = "Faça login para visualizar o cruzamento protegido.";
+    if (meta) meta.textContent = "O painel ainda está iniciando...";
+    window.setTimeout(loadCruzamento, 100);
     return;
   }
   const { data, error } = await supabase
@@ -74,7 +71,7 @@ async function loadCruzamento() {
     .eq("key", "latest_import")
     .maybeSingle();
   if (error) {
-    if (meta) meta.textContent = "Não foi possível carregar o cruzamento protegido.";
+    if (meta) meta.textContent = "Não foi possível carregar o cruzamento.";
     return;
   }
   cruzamento = data?.value || null;
@@ -86,5 +83,3 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelector("#cruzamentoSoConferir")?.addEventListener("change", render);
   loadCruzamento();
 });
-
-supabase.auth.onAuthStateChange(() => loadCruzamento());

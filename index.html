@@ -4,33 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PAINEL DE BOLETOS PENDENTES</title>
-    <link rel="stylesheet" href="./styles.css?v=20260623-2" />
+    <link rel="stylesheet" href="./styles.css?v=20260720-public1" />
   </head>
-  <body class="auth-pending boletos-mode">
-    <section id="authGate" class="auth-gate" aria-labelledby="loginTitle">
-      <div class="auth-panel">
-        <div class="auth-brand">
-          <img src="./assets/logo-sd-white.svg" alt="S&amp;D" />
-          <div>
-            <span class="eyebrow">Financeiro S&amp;D</span>
-            <h1 id="loginTitle">PAINEL DE BOLETOS PENDENTES</h1>
-          </div>
-        </div>
-        <form id="loginForm" class="auth-form">
-          <label for="loginEmail">
-            E-mail
-            <input id="loginEmail" type="email" autocomplete="username" required />
-          </label>
-          <label for="loginPassword">
-            Senha
-            <input id="loginPassword" type="password" autocomplete="current-password" required />
-          </label>
-          <p id="loginError" class="auth-error" role="alert" hidden></p>
-          <button id="loginButton" type="submit">Entrar</button>
-        </form>
-      </div>
-    </section>
-
+  <body class="boletos-mode">
     <header class="app-header">
       <div class="brand-lockup">
         <div class="brand-mark" aria-hidden="true">
@@ -46,7 +22,7 @@
         <span id="apiStatus" class="pill muted">Supabase verificando</span>
         <span id="syncStatus" class="pill muted">Atualizacao verificando</span>
         <span id="rowStatus" class="pill">0 boletos</span>
-        <div id="userIdentity" class="user-identity">
+        <div id="userIdentity" class="user-identity" hidden>
           <span>
             <strong id="userDisplayName">Usuario</strong>
             <small id="userRole">Acesso padrão</small>
@@ -286,7 +262,7 @@
     </dialog>
 
     <div id="toast" class="toast" hidden></div>
-    <script type="module" src="./app.js?v=20260720-2"></script>
-    <script type="module" src="./cruzamento_tab.js?v=20260720-1"></script>
+    <script type="module" src="./app.js?v=20260720-public1"></script>
+    <script type="module" src="./cruzamento_tab.js?v=20260720-public1"></script>
   </body>
 </html>

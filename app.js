@@ -5,10 +5,8 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_fXWQGDirOvs5xfxZDaSOtg_Jgd7vcbu
 const ITEMS_TABLE = "boleto_pendentes_items";
 const META_TABLE = "boleto_pendentes_meta";
 const AUDIT_TABLE = "boleto_pendentes_audit";
-const ADMIN_EMAIL = "lucas.abnersd@gmail.com";
-
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   realtime: { params: { eventsPerSecond: 3 } },
 });
 window.boletoSupabase = supabase;
@@ -64,7 +62,7 @@ const refs = {
   toast: document.querySelector("#toast"),
 };
 
-const editableFields = new Set(["tratado_pendente"]);
+const editableFields = new Set();
 const copyableFields = new Set(["linha_digitavel", "codigo_barras"]);
 const state = {
   allRows: [],
@@ -75,7 +73,7 @@ const state = {
   loadedAt: null,
   session: null,
   user: null,
-  role: "standard",
+  role: "public",
   realtimeChannel: null,
   refreshTimer: null,
   savingRows: new Set(),
@@ -87,26 +85,21 @@ init();
 async function init() {
   bindEvents();
   renderEmptySelects();
-  const { data, error } = await supabase.auth.getSession();
-  if (error) {
-    showLogin("Nao foi possivel verificar a sessao.");
-    return;
+  document.body.classList.add("is-authenticated");
+  activateTab("boletos");
+  try {
+    await refreshAll();
+    startRealtime();
+    clearInterval(state.refreshTimer);
+    state.refreshTimer = setInterval(refreshAllQuietly, 60000);
+  } catch (error) {
+    setApiOffline(error);
+    refs.rowsBody.innerHTML = '<tr><td colspan="14" class="empty">NÃ£o foi possÃ­vel carregar os boletos. Atualize a pÃ¡gina ou tente novamente.</td></tr>';
+    toast(error.message || "Falha ao carregar os boletos.");
   }
-  if (data.session) {
-    await activateSession(data.session);
-  } else {
-    showLogin();
-  }
-
-  supabase.auth.onAuthStateChange((event, session) => {
-    if (event === "SIGNED_OUT" || !session) queueMicrotask(() => deactivateSession());
-  });
 }
 
 function bindEvents() {
-  refs.loginForm.addEventListener("submit", handleLogin);
-  refs.logoutButton.addEventListener("click", handleLogout);
-
   refs.filtersForm.addEventListener("submit", (event) => {
     event.preventDefault();
     applyFilters();
@@ -311,7 +304,6 @@ function formatInputDate(date) {
 }
 
 async function refreshAll() {
-  if (!state.session) return;
   await Promise.all([loadRows(), loadMeta(), loadTreatments()]);
   applyFilters();
   refs.apiStatus.textContent = "Supabase online";
@@ -319,7 +311,6 @@ async function refreshAll() {
 }
 
 async function refreshAllQuietly() {
-  if (!state.session) return;
   try {
     await refreshAll();
   } catch (error) {
@@ -360,32 +351,7 @@ async function loadMeta() {
 }
 
 async function loadTreatments() {
-  const { data, error } = await supabase
-    .from(AUDIT_TABLE)
-    .select("id,item_id,new_value,created_at")
-    .eq("field_name", "tratativa")
-    .order("created_at", { ascending: false })
-    .limit(5000);
-
-  if (error) throw error;
-  const treatments = new Map();
-  (data || []).forEach((item) => {
-    const itemId = String(item.item_id || "");
-    if (!itemId) return;
-    const newValue = parseAuditJson(item.new_value);
-    const payload = newValue?.payload || newValue || {};
-    const value = String(payload.value || "").trim();
-    if (!value) return;
-    const history = treatments.get(itemId) || [];
-    history.push({
-      auditId: String(item.id || ""),
-      value: String(payload.value || ""),
-      changedBy: String(payload.changed_by || "Nao informado"),
-      changedAt: payload.changed_at || item.created_at,
-    });
-    treatments.set(itemId, history);
-  });
-  state.treatments = treatments;
+  state.treatments = new Map();
 }
 
 function parseAuditJson(value) {
@@ -597,24 +563,11 @@ function renderSelect(row, field, options) {
   const current = String(row[field] || "");
   const values = [...new Set([current, ...options].filter(Boolean))];
   const statusClass = field === "tratado_pendente" ? ` treatment-select ${treatmentStatusClass(current)}` : "";
-  return `<select class="table-select${statusClass}" data-field="${field}" data-saved-value="${escapeAttr(current)}">${values.map((value) => `<option value="${escapeAttr(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}</select>`;
+  return `<select class="table-select${statusClass}" disabled title="Painel publico: somente consulta">${values.map((value) => `<option value="${escapeAttr(value)}" ${value === current ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}</select>`;
 }
 
 function renderTreatmentBox(row) {
-  const history = treatmentHistory(row.id);
-  const latest = history[0];
-  const value = String(latest?.value || "").trim();
-  const count = history.length;
-  return `
-    <div class="treatment-cell-actions">
-      <button type="button" class="treatment-box ${value ? "has-treatment" : ""}" data-action="edit-treatment" title="Adicionar nova tratativa" aria-label="Adicionar nova tratativa">
-        <span class="treatment-note-icon" aria-hidden="true"></span>
-        <span class="treatment-preview">Adicionar tratativa</span>
-        ${count ? `<span class="treatment-count-badge" aria-label="${count} tratativa${count === 1 ? "" : "s"}">${count}</span>` : ""}
-      </button>
-      ${count ? `<button type="button" class="treatment-view-button" data-action="view-treatment" title="Visualizar historico de tratativas" aria-label="Visualizar ${count} tratativa${count === 1 ? "" : "s"}"><span class="treatment-eye-icon" aria-hidden="true"></span></button>` : ""}
-    </div>
-  `;
+  return '<span class="muted">Consulta publica</span>';
 }
 
 function treatmentHistory(rowId) {
