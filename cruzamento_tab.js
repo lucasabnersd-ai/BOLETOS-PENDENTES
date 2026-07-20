@@ -1,10 +1,4 @@
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/+esm";
-
-const supabase = createClient(
-  "https://pyrniqluywejmgzqkari.supabase.co",
-  "sb_publishable_fXWQGDirOvs5xfxZDaSOtg_Jgd7vcbu",
-  { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } },
-);
+const supabase = window.boletoSupabase;
 
 const fmtBRL = (value) =>
   value == null ? "-" : Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -65,6 +59,10 @@ function render() {
 
 async function loadCruzamento() {
   const meta = document.querySelector("#cruzamentoMeta");
+  if (!supabase) {
+    if (meta) meta.textContent = "O painel ainda está iniciando. Atualize a página.";
+    return;
+  }
   const { data: sessionData } = await supabase.auth.getSession();
   if (!sessionData.session) {
     if (meta) meta.textContent = "Faça login para visualizar o cruzamento protegido.";

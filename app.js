@@ -11,6 +11,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
   realtime: { params: { eventsPerSecond: 3 } },
 });
+window.boletoSupabase = supabase;
 
 const refs = {
   authGate: document.querySelector("#authGate"),
@@ -193,10 +194,16 @@ async function activateSession(session) {
   document.body.classList.add("is-authenticated");
   activateTab("boletos");
 
-  await refreshAll();
-  startRealtime();
-  clearInterval(state.refreshTimer);
-  state.refreshTimer = setInterval(refreshAllQuietly, 60000);
+  try {
+    await refreshAll();
+    startRealtime();
+    clearInterval(state.refreshTimer);
+    state.refreshTimer = setInterval(refreshAllQuietly, 60000);
+  } catch (error) {
+    setApiOffline(error);
+    refs.rowsBody.innerHTML = '<tr><td colspan="14" class="empty">Não foi possível carregar os boletos. Atualize a página ou tente novamente.</td></tr>';
+    toast(error.message || "Falha ao carregar os boletos.");
+  }
 }
 
 function deactivateSession() {
