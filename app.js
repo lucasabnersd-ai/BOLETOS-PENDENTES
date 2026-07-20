@@ -5,6 +5,9 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_fXWQGDirOvs5xfxZDaSOtg_Jgd7vcbu
 const ITEMS_TABLE = "boleto_pendentes_items";
 const META_TABLE = "boleto_pendentes_meta";
 const AUDIT_TABLE = "boleto_pendentes_audit";
+const ROWS_PER_PAGE = 200;
+const BRL_FORMATTER = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const INTEGER_FORMATTER = new Intl.NumberFormat("pt-BR");
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   realtime: { params: { eventsPerSecond: 3 } },
@@ -29,6 +32,9 @@ const refs = {
   refreshButton: document.querySelector("#refreshButton"),
   clearButton: document.querySelector("#clearButton"),
   exportButton: document.querySelector("#exportButton"),
+  previousPageButton: document.querySelector("#previousPageButton"),
+  nextPageButton: document.querySelector("#nextPageButton"),
+  pageStatus: document.querySelector("#pageStatus"),
   treatedFilter: document.querySelector("#treatedFilter"),
   fonteFilter: document.querySelector("#fonteFilter"),
   origemFilter: document.querySelector("#origemFilter"),
@@ -79,6 +85,7 @@ const state = {
   refreshTimer: null,
   savingRows: new Set(),
   suppressRealtimeUntil: 0,
+  page: 1,
 };
 
 init();
@@ -123,6 +130,8 @@ function bindEvents() {
     applyFilters();
   });
   refs.exportButton.addEventListener("click", exportExcel);
+  refs.previousPageButton.addEventListener("click", () => changePage(-1));
+  refs.nextPageButton.addEventListener("click", () => changePage(1));
 
   document.querySelectorAll(".tab-button").forEach((button) => {
     button.addEventListener("click", () => activateTab(button.dataset.tab));
@@ -439,6 +448,7 @@ function applyFilters() {
   };
   state.filters = filters;
   state.rows = state.allRows.filter((row) => rowMatches(row, filters));
+  state.page = 1;
   renderAll();
 }
 
@@ -527,12 +537,31 @@ function renderGroupBars(groups, total) {
 }
 
 function renderRows() {
-  refs.resultCount.textContent = `${state.rows.length} registro${state.rows.length === 1 ? "" : "s"}`;
-  if (!state.rows.length) {
+  const total = state.rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / ROWS_PER_PAGE));
+  state.page = Math.min(Math.max(state.page, 1), totalPages);
+  const start = (state.page - 1) * ROWS_PER_PAGE;
+  const pageRows = state.rows.slice(start, start + ROWS_PER_PAGE);
+  refs.resultCount.textContent = `${total} registro${total === 1 ? "" : "s"}`;
+  refs.previousPageButton.disabled = state.page <= 1;
+  refs.nextPageButton.disabled = state.page >= totalPages;
+  refs.pageStatus.textContent = total
+    ? `Exibindo ${start + 1}–${start + pageRows.length} de ${total}`
+    : "Nenhum registro";
+  if (!total) {
     refs.rowsBody.innerHTML = '<tr><td colspan="14" class="empty">Nenhum boleto encontrado para os filtros atuais.</td></tr>';
     return;
   }
-  refs.rowsBody.innerHTML = state.rows.map(renderRow).join("");
+  refs.rowsBody.innerHTML = pageRows.map(renderRow).join("");
+}
+
+function changePage(delta) {
+  const totalPages = Math.max(1, Math.ceil(state.rows.length / ROWS_PER_PAGE));
+  const nextPage = Math.min(Math.max(state.page + delta, 1), totalPages);
+  if (nextPage === state.page) return;
+  state.page = nextPage;
+  renderRows();
+  refs.tableWrap.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function renderRow(row) {
@@ -1150,11 +1179,11 @@ function normalizeText(value) {
 function formatCurrency(value) {
   const number = Number(value || 0);
   if (!Number.isFinite(number)) return "-";
-  return number.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return BRL_FORMATTER.format(number);
 }
 
 function formatInteger(value) {
-  return Number(value || 0).toLocaleString("pt-BR");
+  return INTEGER_FORMATTER.format(Number(value || 0));
 }
 
 function formatDate(value) {

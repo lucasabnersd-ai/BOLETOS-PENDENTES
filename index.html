@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PAINEL DE BOLETOS PENDENTES</title>
-    <link rel="stylesheet" href="./styles.css?v=20260720-calibri11" />
+    <link rel="stylesheet" href="./styles.css?v=20260720-performance1" />
   </head>
   <body class="boletos-mode">
     <header class="app-header">
@@ -172,6 +172,11 @@
                 </tbody>
               </table>
             </div>
+            <nav class="table-pagination" aria-label="Paginação dos boletos">
+              <button id="previousPageButton" type="button" class="secondary">Anterior</button>
+              <span id="pageStatus" class="muted-copy">Carregando registros...</span>
+              <button id="nextPageButton" type="button" class="secondary">Próxima</button>
+            </nav>
           </section>
         </section>
 
@@ -276,7 +281,7 @@
 
     <div id="toast" class="toast" hidden></div>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script type="module" src="./app.js?v=20260720-filters1"></script>
+    <script type="module" src="./app.js?v=20260720-performance1"></script>
     <script type="module" src="./cruzamento_tab.js?v=20260720-calibri1"></script>
   </body>
 </html>

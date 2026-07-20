@@ -1,7 +1,9 @@
 let supabase = null;
+let renderTimer = null;
+const BRL_FORMATTER = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 const fmtBRL = (value) =>
-  value == null ? "-" : Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  value == null ? "-" : BRL_FORMATTER.format(Number(value));
 
 const esc = (value) => String(value == null ? "" : value)
   .replace(/&/g, "&amp;")
@@ -62,6 +64,11 @@ function render() {
     : '<tr><td colspan="13" class="empty">Nenhum registro com esse filtro.</td></tr>';
 }
 
+function scheduleRender() {
+  window.clearTimeout(renderTimer);
+  renderTimer = window.setTimeout(render, 140);
+}
+
 function exportCrossingExcel() {
   const exporter = window.downloadBoletoExcel;
   const meta = document.querySelector("#cruzamentoMeta");
@@ -111,7 +118,7 @@ async function loadCruzamento() {
 
 document.addEventListener("DOMContentLoaded", () => {
   ["#cruzamentoSearch", "#cruzamentoValorMin", "#cruzamentoValorMax"].forEach((selector) => {
-    document.querySelector(selector)?.addEventListener("input", render);
+    document.querySelector(selector)?.addEventListener("input", scheduleRender);
   });
   document.querySelector("#cruzamentoConfianca")?.addEventListener("change", render);
   document.querySelector("#cruzamentoExportButton")?.addEventListener("click", exportCrossingExcel);
