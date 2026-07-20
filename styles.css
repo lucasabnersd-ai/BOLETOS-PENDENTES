@@ -912,7 +912,7 @@ body.cruzamento-mode .workspace {
 }
 
 body.cruzamento-mode .table-wrap {
-  max-height: calc(100vh - 288px);
+  max-height: calc(100vh - 174px);
   border: 1px solid #cbd8d4;
   background: #fff;
 }

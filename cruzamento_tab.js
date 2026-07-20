@@ -9,9 +9,6 @@ const esc = (value) => String(value == null ? "" : value)
   .replace(/>/g, "&gt;")
   .replace(/\"/g, "&quot;");
 
-const kpi = (label, value, extraClass = "") =>
-  `<article class="panel kpi-card ${extraClass}"><span class="eyebrow">${esc(label)}</span><strong>${esc(value)}</strong></article>`;
-
 const confidenceClass = (value) => String(value || "").toUpperCase() === "ALTA"
   ? "confidence-high"
   : "confidence-review";
@@ -43,7 +40,6 @@ function filteredRows() {
 
 function render() {
   const meta = document.querySelector("#cruzamentoMeta");
-  const kpis = document.querySelector("#cruzamentoKpis");
   const body = document.querySelector("#cruzamentoRowsBody");
   const count = document.querySelector("#cruzamentoCount");
   if (!cruzamento) {
@@ -52,18 +48,7 @@ function render() {
     return;
   }
 
-  const resumo = cruzamento.resumo || {};
   if (meta) meta.textContent = `Gerado em ${cruzamento.gerado_em || "-"} | Base NFes: ${cruzamento.base_nfes || "-"}`;
-  if (kpis) kpis.innerHTML = [
-    kpi("Total de boletos", resumo.total_boletos ?? 0),
-    kpi("Por numero de NF", resumo.por_numero_nf ?? 0),
-    kpi("Por CNPJ/Nome + valor", resumo.por_cnpj_valor ?? 0),
-    kpi("Sem associacao", resumo.sem_associacao ?? 0),
-    kpi("Confianca ALTA", resumo.alta ?? 0),
-    kpi("Conferir", resumo.conferir ?? 0),
-    kpi("Valor associado", fmtBRL(resumo.valor_associado)),
-    kpi("Valor sem associacao", fmtBRL(resumo.valor_sem_associacao)),
-  ].join("");
 
   const rows = filteredRows();
   if (count) count.textContent = `${rows.length} associados`;
