@@ -540,6 +540,36 @@ button:disabled {
   background: #fff;
 }
 
+.crossing-controls {
+  display: flex;
+  flex: 1 1 640px;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.crossing-controls label {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.crossing-controls select,
+.crossing-controls input {
+  min-width: 118px;
+  min-height: 34px;
+  padding: 6px 9px;
+  font-size: 12px;
+}
+
+#cruzamentoSearch {
+  min-width: 230px;
+}
+
 .muted-copy {
   color: var(--muted);
   font-size: 12px;
@@ -926,6 +956,10 @@ body.cruzamento-mode tbody tr:nth-child(even) td {
 
 body.cruzamento-mode tr:hover td {
   background: #edf5f1;
+}
+
+body.cruzamento-mode .results-header {
+  align-items: end;
 }
 
 body.boletos-mode table {
@@ -1671,6 +1705,18 @@ body.boletos-mode .last-change-cell span {
 
   body.boletos-mode .app-shell {
     padding: 10px;
+  }
+
+  .crossing-controls {
+    justify-content: stretch;
+  }
+
+  .crossing-controls label,
+  .crossing-controls input,
+  .crossing-controls select,
+  #cruzamentoSearch {
+    min-width: 0;
+    width: 100%;
   }
 
   body.boletos-mode #filtersForm .due-quick-filters {

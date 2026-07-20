@@ -18,6 +18,29 @@ const confidenceClass = (value) => String(value || "").toUpperCase() === "ALTA"
 
 let cruzamento = null;
 
+function parseCurrency(value) {
+  if (typeof value === "number") return value;
+  const text = String(value ?? "").trim();
+  if (!text) return NaN;
+  return Number(text.replace(/\./g, "").replace(",", "."));
+}
+
+function filteredRows() {
+  const search = (document.querySelector("#cruzamentoSearch")?.value || "").trim().toLowerCase();
+  const confidence = (document.querySelector("#cruzamentoConfianca")?.value || "").toUpperCase();
+  const minValue = parseCurrency(document.querySelector("#cruzamentoValorMin")?.value);
+  const maxValue = parseCurrency(document.querySelector("#cruzamentoValorMax")?.value);
+  return (cruzamento?.associados || []).filter((row) => {
+    const rowConfidence = String(row.confianca || "").toUpperCase();
+    const value = parseCurrency(row.valor);
+    if (confidence && rowConfidence !== confidence) return false;
+    if (Number.isFinite(minValue) && (!Number.isFinite(value) || value < minValue)) return false;
+    if (Number.isFinite(maxValue) && (!Number.isFinite(value) || value > maxValue)) return false;
+    return !search || [row.fornecedor, row.cnpj, row.nfdoc, row.nf9, row.nf, row.emitente, row.obs]
+      .join(" ").toLowerCase().includes(search);
+  });
+}
+
 function render() {
   const meta = document.querySelector("#cruzamentoMeta");
   const kpis = document.querySelector("#cruzamentoKpis");
@@ -42,13 +65,7 @@ function render() {
     kpi("Valor sem associacao", fmtBRL(resumo.valor_sem_associacao)),
   ].join("");
 
-  const search = (document.querySelector("#cruzamentoSearch")?.value || "").trim().toLowerCase();
-  const onlyReview = Boolean(document.querySelector("#cruzamentoSoConferir")?.checked);
-  const rows = (cruzamento.associados || []).filter((row) => {
-    if (onlyReview && row.confianca !== "CONFERIR") return false;
-    return !search || [row.fornecedor, row.cnpj, row.nfdoc, row.nf9, row.nf, row.emitente, row.obs]
-      .join(" ").toLowerCase().includes(search);
-  });
+  const rows = filteredRows();
   if (count) count.textContent = `${rows.length} associados`;
   if (body) body.innerHTML = rows.length
     ? rows.map((row) => `<tr>
@@ -59,6 +76,32 @@ function render() {
         <td class="num">${fmtBRL(row.vlr_parcela)}</td><td class="num">${row.dif_valor == null ? "-" : fmtBRL(row.dif_valor)}</td><td>${esc(row.obs)}</td>
       </tr>`).join("")
     : '<tr><td colspan="13" class="empty">Nenhum registro com esse filtro.</td></tr>';
+}
+
+function exportCrossingExcel() {
+  const exporter = window.downloadBoletoExcel;
+  const meta = document.querySelector("#cruzamentoMeta");
+  if (!exporter) {
+    if (meta) meta.textContent = "A exportação ainda está iniciando. Tente novamente em alguns segundos.";
+    return;
+  }
+  const rows = filteredRows().map((row) => ({
+    Confianca: row.confianca,
+    Metodo: row.metodo,
+    Fornecedor_boleto: row.fornecedor,
+    CNPJ_CPF: row.cnpj,
+    NF_DOC_extraido: row.nfdoc,
+    Valor_boleto: Number.isFinite(parseCurrency(row.valor)) ? parseCurrency(row.valor) : "",
+    Vencimento_boleto: row.venc,
+    NF_9_digitos: row.nf9,
+    Emitente_NF: row.emitente,
+    Parcela: row.parcela,
+    Vencimento_parcela: row.venc_parcela,
+    Valor_parcela: Number.isFinite(parseCurrency(row.vlr_parcela)) ? parseCurrency(row.vlr_parcela) : "",
+    Diferenca_valor: Number.isFinite(parseCurrency(row.dif_valor)) ? parseCurrency(row.dif_valor) : "",
+    Observacao: row.obs,
+  }));
+  exporter(`cruzamento-nfes-${new Date().toISOString().slice(0, 10)}.xlsx`, "Cruzamento NFes", rows);
 }
 
 async function loadCruzamento() {
@@ -83,7 +126,10 @@ async function loadCruzamento() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.querySelector("#cruzamentoSearch")?.addEventListener("input", render);
-  document.querySelector("#cruzamentoSoConferir")?.addEventListener("change", render);
+  ["#cruzamentoSearch", "#cruzamentoValorMin", "#cruzamentoValorMax"].forEach((selector) => {
+    document.querySelector(selector)?.addEventListener("input", render);
+  });
+  document.querySelector("#cruzamentoConfianca")?.addEventListener("change", render);
+  document.querySelector("#cruzamentoExportButton")?.addEventListener("click", exportCrossingExcel);
   loadCruzamento();
 });

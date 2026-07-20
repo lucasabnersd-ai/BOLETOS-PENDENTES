@@ -10,6 +10,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   realtime: { params: { eventsPerSecond: 3 } },
 });
 window.boletoSupabase = supabase;
+window.downloadBoletoExcel = downloadBoletoExcel;
 
 const refs = {
   authGate: document.querySelector("#authGate"),
@@ -121,7 +122,7 @@ function bindEvents() {
     setSourceScope("all");
     applyFilters();
   });
-  refs.exportButton.addEventListener("click", exportCsv);
+  refs.exportButton.addEventListener("click", exportExcel);
 
   document.querySelectorAll(".tab-button").forEach((button) => {
     button.addEventListener("click", () => activateTab(button.dataset.tab));
@@ -135,7 +136,7 @@ function bindEvents() {
   refs.treatmentCancelButton.addEventListener("click", closeTreatmentDialog);
   refs.treatmentViewCloseButton.addEventListener("click", () => refs.treatmentViewDialog.close());
   refs.treatmentViewList.addEventListener("click", handleTreatmentHistoryClick);
-  enableHorizontalDrag(refs.tableWrap);
+  document.querySelectorAll(".table-wrap").forEach(enableHorizontalDrag);
 }
 
 async function handleLogin(event) {
@@ -1034,34 +1035,40 @@ function activateTab(tab) {
   document.body.classList.toggle("cruzamento-mode", tab === "cruzamento");
 }
 
-function exportCsv() {
-  const headers = ["tratado_pendente", "last_changed_by", "last_changed_at", "tratativa", "prioridade", "vencimento", "dias_para_vencer", "valor", "fornecedor", "fonte", "nf_doc_extraido", "dda_itau", "checklist", "observacao"];
-  const lines = [headers.join(";")].concat(state.rows.map((row) => headers.map((field) => {
-    const value = field === "dias_para_vencer"
-      ? daysUntilDue(row.vencimento)
-      : field === "tratativa"
-        ? treatmentsForExport(row.id)
-        : field === "fonte"
-          ? sourceName(row)
-          : row[field];
-    return csvValue(value);
-  }).join(";")));
-  const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `boletos-pendentes-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+function exportExcel() {
+  const rows = state.rows.map((row) => ({
+    Tratado: row.tratado_pendente,
+    Prioridade: row.prioridade,
+    Vencimento: row.vencimento,
+    Dias_para_vencer: daysUntilDue(row.vencimento),
+    Valor: parseCurrency(row.valor) || 0,
+    Fornecedor: row.fornecedor,
+    Fonte: sourceName(row),
+    NF_DOC: row.nf_doc_extraido,
+    DDA: row.dda_itau,
+    Checklist: row.checklist,
+    Observacao: row.observacao,
+  }));
+  downloadBoletoExcel(`boletos-pendentes-${new Date().toISOString().slice(0, 10)}.xlsx`, "Boletos", rows);
 }
 
-function csvValue(value) {
-  const text = String(value ?? "");
-  const formulaProbe = text.replace(/^[\s\u0000-\u001f]+/, "");
-  const safeText = typeof value === "string" && /^[=+\-@]/.test(formulaProbe) ? `'${text}` : text;
-  return `"${safeText.replaceAll('"', '""')}"`;
+function downloadBoletoExcel(filename, sheetName, rows) {
+  if (!window.XLSX) {
+    toast("Biblioteca de Excel indisponível. Atualize a página e tente novamente.");
+    return false;
+  }
+  const safeRows = rows.map((row) => Object.fromEntries(Object.entries(row).map(([key, value]) => [key, safeExcelValue(value)])));
+  const worksheet = window.XLSX.utils.json_to_sheet(safeRows);
+  worksheet["!cols"] = Object.keys(safeRows[0] || {}).map((key) => ({ wch: Math.min(Math.max(String(key).length + 2, 14), 34) }));
+  const workbook = window.XLSX.utils.book_new();
+  window.XLSX.utils.book_append_sheet(workbook, worksheet, sheetName.slice(0, 31));
+  window.XLSX.writeFile(workbook, filename, { compression: true });
+  return true;
+}
+
+function safeExcelValue(value) {
+  if (typeof value !== "string") return value ?? "";
+  return /^[\s\u0000-\u001f]*[=+\-@]/.test(value) ? `'${value}` : value;
 }
 
 function groupBy(rows, getter) {

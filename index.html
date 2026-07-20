@@ -140,10 +140,10 @@
             <div class="results-header">
               <div>
                 <h2>Boletos pendentes</h2>
-                <p class="muted-copy">Edicoes feitas aqui sao gravadas direto no Supabase.</p>
+                <p class="muted-copy">Consulta online atualizada automaticamente pela base financeira.</p>
               </div>
               <div class="button-row">
-                <button id="exportButton" type="button" class="secondary">Exportar CSV</button>
+                <button id="exportButton" type="button" class="secondary">Exportar Excel</button>
                 <span id="resultCount" class="pill">0 registros</span>
               </div>
             </div>
@@ -192,11 +192,25 @@
                 <h2>Cruzamento NFes x Boletos Pendentes</h2>
                 <p id="cruzamentoMeta" class="muted-copy">Carregando dados do cruzamento...</p>
               </div>
-              <div class="button-row">
-                <label class="pill muted" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-                  <input id="cruzamentoSoConferir" type="checkbox" /> So CONFERIR
+              <div class="crossing-controls">
+                <label>
+                  Confiança
+                  <select id="cruzamentoConfianca">
+                    <option value="">Todas</option>
+                    <option value="ALTA">ALTA</option>
+                    <option value="CONFERIR">CONFERIR</option>
+                  </select>
                 </label>
-                <input id="cruzamentoSearch" placeholder="Filtrar fornecedor, NF, CNPJ..." style="min-width:220px;" />
+                <label>
+                  Valor mín.
+                  <input id="cruzamentoValorMin" inputmode="decimal" placeholder="0,00" />
+                </label>
+                <label>
+                  Valor máx.
+                  <input id="cruzamentoValorMax" inputmode="decimal" placeholder="0,00" />
+                </label>
+                <input id="cruzamentoSearch" placeholder="Filtrar fornecedor, NF, CNPJ..." />
+                <button id="cruzamentoExportButton" type="button" class="secondary">Exportar Excel</button>
                 <span id="cruzamentoCount" class="pill">0 associados</span>
               </div>
             </div>
@@ -262,7 +276,8 @@
     </dialog>
 
     <div id="toast" class="toast" hidden></div>
-    <script type="module" src="./app.js?v=20260720-layout1"></script>
-    <script type="module" src="./cruzamento_tab.js?v=20260720-layout1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script type="module" src="./app.js?v=20260720-filters1"></script>
+    <script type="module" src="./cruzamento_tab.js?v=20260720-filters1"></script>
   </body>
 </html>
