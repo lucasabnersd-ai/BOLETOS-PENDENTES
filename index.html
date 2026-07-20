@@ -136,6 +136,7 @@
           <button class="tab-button active" type="button" data-tab="boletos">Boletos</button>
           <button class="tab-button" type="button" data-tab="overview">Visao geral</button>
           <button class="tab-button" type="button" data-tab="modelos">Modelos</button>
+          <button class="tab-button" type="button" data-tab="cruzamento">Cruzamento NFes</button>
         </nav>
 
         <section id="overviewTab" class="tab-panel">
@@ -208,6 +209,49 @@
           </section>
         </section>
 
+        <section id="cruzamentoTab" class="tab-panel">
+          <section class="results-panel">
+            <div class="results-header">
+              <div>
+                <h2>Cruzamento NFes x Boletos Pendentes</h2>
+                <p id="cruzamentoMeta" class="muted-copy">Carregando dados protegidos...</p>
+              </div>
+              <div class="button-row">
+                <label class="pill muted" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                  <input id="cruzamentoSoConferir" type="checkbox" /> So CONFERIR
+                </label>
+                <input id="cruzamentoSearch" placeholder="Filtrar fornecedor, NF, CNPJ..." style="min-width:220px;" />
+                <span id="cruzamentoCount" class="pill">0 associados</span>
+              </div>
+            </div>
+            <div id="cruzamentoKpis" class="kpi-grid"></div>
+            <div class="table-wrap">
+              <table class="boletos-table">
+                <thead>
+                  <tr>
+                    <th class="status-column">Confianca</th>
+                    <th>Metodo</th>
+                    <th>Fornecedor (boleto)</th>
+                    <th>CNPJ/CPF</th>
+                    <th>NF/DOC extraido</th>
+                    <th class="num">Valor boleto</th>
+                    <th>Venc boleto</th>
+                    <th>NF (9 dig.)</th>
+                    <th>Emitente NF</th>
+                    <th>Parcela / venc</th>
+                    <th class="num">Vlr parcela</th>
+                    <th class="num">Dif valor</th>
+                    <th>Observacao</th>
+                  </tr>
+                </thead>
+                <tbody id="cruzamentoRowsBody">
+                  <tr><td colspan="13" class="empty">Carregando cruzamento...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
       </section>
     </main>
 
@@ -243,5 +287,6 @@
 
     <div id="toast" class="toast" hidden></div>
     <script type="module" src="./app.js?v=20260623-1"></script>
+    <script type="module" src="./cruzamento_tab.js?v=20260720-1"></script>
   </body>
 </html>
