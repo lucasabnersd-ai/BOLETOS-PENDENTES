@@ -55,10 +55,10 @@ function render() {
   if (body) body.innerHTML = rows.length
     ? rows.map((row) => `<tr>
         <td><span class="pill ${confidenceClass(row.confianca)}">${esc(row.confianca)}</span></td>
-        <td>${esc(row.metodo)}</td><td>${esc(row.fornecedor)}</td><td>${esc(row.cnpj)}</td>
+        <td>${esc(row.metodo)}</td><td>${esc(row.obs)}</td><td>${esc(row.fornecedor)}</td><td>${esc(row.cnpj)}</td>
         <td>${esc(row.nfdoc)}</td><td class="num">${fmtBRL(row.valor)}</td><td>${esc(row.venc)}</td>
         <td>${esc(row.nf9)}</td><td>${esc(row.emitente)}</td><td>${esc(row.parcela)} ${esc(row.venc_parcela)}</td>
-        <td class="num">${fmtBRL(row.vlr_parcela)}</td><td class="num">${row.dif_valor == null ? "-" : fmtBRL(row.dif_valor)}</td><td>${esc(row.obs)}</td>
+        <td class="num">${fmtBRL(row.vlr_parcela)}</td><td class="num">${row.dif_valor == null ? "-" : fmtBRL(row.dif_valor)}</td>
       </tr>`).join("")
     : '<tr><td colspan="13" class="empty">Nenhum registro com esse filtro.</td></tr>';
 }
@@ -73,6 +73,7 @@ function exportCrossingExcel() {
   const rows = filteredRows().map((row) => ({
     Confianca: row.confianca,
     Metodo: row.metodo,
+    Observacao: row.obs,
     Fornecedor_boleto: row.fornecedor,
     CNPJ_CPF: row.cnpj,
     NF_DOC_extraido: row.nfdoc,
@@ -84,7 +85,6 @@ function exportCrossingExcel() {
     Vencimento_parcela: row.venc_parcela,
     Valor_parcela: Number.isFinite(parseCurrency(row.vlr_parcela)) ? parseCurrency(row.vlr_parcela) : "",
     Diferenca_valor: Number.isFinite(parseCurrency(row.dif_valor)) ? parseCurrency(row.dif_valor) : "",
-    Observacao: row.obs,
   }));
   exporter(`cruzamento-nfes-${new Date().toISOString().slice(0, 10)}.xlsx`, "Cruzamento NFes", rows);
 }
