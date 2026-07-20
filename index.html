@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PAINEL DE BOLETOS PENDENTES</title>
-    <link rel="stylesheet" href="./styles.css?v=20260720-public1" />
+    <link rel="stylesheet" href="./styles.css?v=20260720-layout1" />
   </head>
   <body class="boletos-mode">
     <header class="app-header">
@@ -33,7 +33,7 @@
     </header>
 
     <main class="app-shell">
-      <aside class="side-panel">
+      <aside class="side-panel" hidden>
         <section class="panel filters-panel">
           <div class="section-title">
             <h2>Filtros</h2>
@@ -190,7 +190,7 @@
             <div class="results-header">
               <div>
                 <h2>Cruzamento NFes x Boletos Pendentes</h2>
-                <p id="cruzamentoMeta" class="muted-copy">Carregando dados protegidos...</p>
+                <p id="cruzamentoMeta" class="muted-copy">Carregando dados do cruzamento...</p>
               </div>
               <div class="button-row">
                 <label class="pill muted" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
@@ -262,7 +262,7 @@
     </dialog>
 
     <div id="toast" class="toast" hidden></div>
-    <script type="module" src="./app.js?v=20260720-public1"></script>
-    <script type="module" src="./cruzamento_tab.js?v=20260720-public1"></script>
+    <script type="module" src="./app.js?v=20260720-layout1"></script>
+    <script type="module" src="./cruzamento_tab.js?v=20260720-layout1"></script>
   </body>
 </html>

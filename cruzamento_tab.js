@@ -12,6 +12,10 @@ const esc = (value) => String(value == null ? "" : value)
 const kpi = (label, value, extraClass = "") =>
   `<article class="panel kpi-card ${extraClass}"><span class="eyebrow">${esc(label)}</span><strong>${esc(value)}</strong></article>`;
 
+const confidenceClass = (value) => String(value || "").toUpperCase() === "ALTA"
+  ? "confidence-high"
+  : "confidence-review";
+
 let cruzamento = null;
 
 function render() {
@@ -48,7 +52,7 @@ function render() {
   if (count) count.textContent = `${rows.length} associados`;
   if (body) body.innerHTML = rows.length
     ? rows.map((row) => `<tr>
-        <td><span class="pill ${row.confianca === "ALTA" ? "" : "muted"}">${esc(row.confianca)}</span></td>
+        <td><span class="pill ${confidenceClass(row.confianca)}">${esc(row.confianca)}</span></td>
         <td>${esc(row.metodo)}</td><td>${esc(row.fornecedor)}</td><td>${esc(row.cnpj)}</td>
         <td>${esc(row.nfdoc)}</td><td class="num">${fmtBRL(row.valor)}</td><td>${esc(row.venc)}</td>
         <td>${esc(row.nf9)}</td><td>${esc(row.emitente)}</td><td>${esc(row.parcela)} ${esc(row.venc_parcela)}</td>

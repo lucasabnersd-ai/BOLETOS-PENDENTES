@@ -1031,6 +1031,7 @@ function activateTab(tab) {
   });
   document.body.classList.toggle("boletos-mode", tab === "boletos");
   document.body.classList.toggle("overview-mode", tab === "overview");
+  document.body.classList.toggle("cruzamento-mode", tab === "cruzamento");
 }
 
 function exportCsv() {
